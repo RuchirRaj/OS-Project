@@ -20,7 +20,7 @@ int childShId[MAX_THREADS]; //Shared memory id for each child worker/client
 
 //Struct for connection request
 struct conSeg{
-    int lock;
+    int lock; // 0-> no lock, 1 -> locked by server, 2 -> locked by client, 3 -> response from server
     int shid;
     int id;
     char name[NAME_SIZE];
@@ -56,10 +56,22 @@ void handle_sigint(int sig)
     exit(-1);
 }
 
+int hash(unsigned char *str)
+{
+    int hash = 5381;
+    int c;
+
+    while (c = *str++)
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+    return hash;
+}
+
 void* ResponseThread(void* d)
 {
-    printf("\nWorker Thread Executing\n");
     int id = *(int*)d;
+    printf("\nWorker Thread Executing : {%d}\n", id);
+    
     struct resSeg *resSeg;
     resSeg = shmat(id, NULL, 0);
     //Just a sample response
@@ -98,7 +110,7 @@ int main(int argc, char *argv[])
         if(conSeg->id != 0)
         {
             printf("New Connection Request");
-            childShId[num] = shmget(ftok(conSeg->name, conSeg->id), sizeof(struct resSeg), 0644|IPC_CREAT);
+            childShId[num] = shmget(hash(conSeg->name), sizeof(struct resSeg), 0644|IPC_CREAT);
             process[num] = pthread_create(&process[num], NULL, ResponseThread, (void*)&childShId[num]);
             conSeg->id = 0;
             conSeg->shid = childShId[num];

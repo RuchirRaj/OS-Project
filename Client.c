@@ -25,7 +25,13 @@ struct resSeg
 
 int main(int argc, char *argv[]) 
 {
-    int id = 20;
+    int id = 200;
+    char name[NAME_SIZE];
+    printf("\nEnter a client name:");
+    scanf("%s", &name[0]);
+
+    printf("Client name : {%s} Length {%d}\n", name, strlen(name));
+
     int conSegID;
     int resSegID;
 
@@ -52,16 +58,18 @@ int main(int argc, char *argv[])
         //Adding a request
         if(registered == 0)
         {
-            if(conSeg->lock != 0)
+            if(conSeg->lock != 0 
+            || conSeg->id != 0) //In case there is already a connection request
                 continue;
             conSeg->lock = 2;
             printf("Adding connection Request....\n");
             conSeg->id = id;
-            //Replace this with a helper function later on
-            conSeg->name[0] = 'T';
-            conSeg->name[1] = 'E';
-            conSeg->name[2] = 'S';
-            conSeg->name[3] = 'T';
+
+            for (int i = 0; i < strlen(name); i++)
+            {
+                conSeg->name[i] = name[i];
+            }
+            
             registered = 1;
             conSeg->lock = 0;
         }
@@ -71,7 +79,7 @@ int main(int argc, char *argv[])
         {
             if(conSeg->lock != 3)
             {
-                printf("Waiting for response....\n");
+                //printf("Waiting for response....\n");
                 continue;
             }
             conSeg->lock = 2;
