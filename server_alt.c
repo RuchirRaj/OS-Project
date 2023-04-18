@@ -18,6 +18,7 @@
 #define SHM_SIZE 1024
 #define NAME_SIZE 256
 #define SHM_KEY 0x1234 // Used for conntection channel
+int clientSHM_ID[MAX_CLIENTS];
 
 
 pthread_t process[MAX_CLIENTS];
@@ -119,6 +120,17 @@ bool primeCheck(int n)
     return true;
 }
 
+int hash(unsigned char *str)
+{
+    int hash = 5381;
+    int c;
+
+    while (c = *str++)
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+    return hash;
+}
+
 // void handle_sigint(int sig)
 // {
 //     PRINT_INFO("\nClosing shared memory segment.....\n");
@@ -181,4 +193,9 @@ void *threadFunction(void *arg)
 }
 
 int main()
-{}
+{
+    // Properly Implement name part later
+    // char name[NAME_SIZE];
+    // int id = 0;
+    // childShId[id] = hash(name);  
+}

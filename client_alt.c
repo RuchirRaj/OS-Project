@@ -75,6 +75,17 @@ typedef struct
       response_info response;
 } shared_data_t;
 
+int hash(unsigned char *str)
+{
+    int hash = 5381;
+    int c;
+
+    while (c = *str++)
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+    return hash;
+}
+
 int main()
 {
   char name[NAME_SIZE];
@@ -85,7 +96,8 @@ int main()
     int id = 0;
   // Connect Channel to be implemented
   int shmid;
-  if ((shmid = shmget(SHM_KEY, sizeof(shared_data_t), 0644 | IPC_CREAT)) == -1)
+  int comm_shm_key = hash(name);
+  if ((shmid = shmget(comm_shm_key, sizeof(shared_data_t), 0644 | IPC_CREAT)) == -1)
     {
         PRINT_ERROR("Shared memory");
         exit(0);
