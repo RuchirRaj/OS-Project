@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include <time.h>
+#include <stdbool.h>
 
 #define MAX_CLIENTS 10
 #define MAX_MESSAGE_LENGTH 100
@@ -39,27 +40,32 @@
                __LINE__, ##__VA_ARGS__);                                              \
     }
 
-typedef union 
+typedef struct 
 {
-    char name[MAX_CLIENTS][NAME_SIZE];
-    int key[MAX_CLIENTS];
-    int connected[MAX_CLIENTS];
+    char name[NAME_SIZE];
+    int key;
+    int connected;
 } client_info;
 
-typedef union 
+typedef struct 
 {
   int response_code;
   int client_response_code;
   int server_response_code;
-  int data;
+  union 
+  {
+    bool trueOrFalse;
+    char oddOrEven[5];
+    int answer;
+  } data;
 } response_info;
 
-typedef union
+typedef struct
 {
     int a;
     int b;
     char op[BUF_SIZE];
-    char param;
+    int param;
 } request_info;
 
 typedef struct 
@@ -94,8 +100,8 @@ int main()
     int choice = -1;
     int num1 = -1;
     int num2 = -1;
-    int op = -1;
-    pthread_mutex_lock(&(data->mutex));
+    int param = -1;
+    char op[NAME_SIZE];
     //Menu Implementation
     while(1)
     {
@@ -114,68 +120,79 @@ int main()
                     scanf("%d",&num1);
                     PRINT_INFO("\nEnter Second Number!")
                     scanf("%d",&num2);
-                    op = 1;
-
-                    data->request.a = num1;
-                    data->request.b = num2;
-                    strcpy(data->request.op,"arithmetic");
-                    data->request.param = op;
+                    param = 1;
+                    strcpy(op,"arithmetic");
                     break;
 
             case 2: PRINT_INFO("\nEnter First Number!");
                     scanf("%d",&num1);
                     PRINT_INFO("\nEnter Second Number!")
                     scanf("%d",&num2);
-                    op = 2;
-
-                    data->request.a = num1;
-                    data->request.b = num2;
-                    strcpy(data->request.op,"arithmetic");
-                    data->request.param = op;
+                    param = 2;
+                    strcpy(op,"arithmetic");;
                     break;
 
             case 3: PRINT_INFO("\nEnter First Number!");
                     scanf("%d",&num1);
                     PRINT_INFO("\nEnter Second Number!")
                     scanf("%d",&num2);
-                    op = 3;
-
-                    data->request.a = num1;
-                    data->request.b = num2;
-                    strcpy(data->request.op,"arithmetic");
-                    data->request.param = op;
+                    param = 3;
+                    strcpy(op,"arithmetic");
                     break;
 
             case 4: PRINT_INFO("\nEnter First Number!");
                     scanf("%d",&num1);
                     PRINT_INFO("\nEnter Second Number!")
                     scanf("%d",&num2);
-                    op = 4;
-
-                    data->request.a = num1;
-                    data->request.b = num2;
-                    strcpy(data->request.op,"arithmetic");
-                    data->request.param = op;
+                    param = 4;
+                    strcpy(op,"arithmetic");
                     break;
             
             case 5: PRINT_INFO("\nEnter The Number");
                     scanf("%d",&num1);
-
-                    data->request.a = num1;
-                    strcpy(data->request.op,"prime");
+                    strcpy(op,"prime");
                     break;
 
             
             case 6: PRINT_INFO("\nEnter The Number");
                     scanf("%d",&num1);
-
-                    data->request.a = num1;
-                    strcpy(data->request.op,"oddeven");
+                    strcpy(op,"oddeven");
                     break;
 
             case 0: PRINT_INFO("TO BE DONE.");
                     break;
         }
+
+        pthread_mutex_lock(&(data->mutex));
+        data->request.a = num1;
+        data->request.b = num2;
+        strcpy(data->request.op,"arithmetic");
+        data->request.param = param;
+        data->response.response_code = -1;
+        pthread_mutex_unlock(&(data->mutex));
+
+        while(data->response.response_code==-1);
+        pthread_mutex_lock(&(data->mutex));
+        switch(choice)
+        {
+            case 1:
+            case 2:
+            case 3:
+            case 4: int answer = data->response.data.answer;
+                    PRINT_INFO("\nThe Answer is %d",answer);
+                    break;
+
+            case 5: bool isPrime = data->response.data.trueOrFalse;
+                    if(isPrime==true)
+                    PRINT_INFO("\nYes! It is a Prime Number.")
+                    else PRINT_INFO("\nNo, It is not a Prime Number");
+                    break;
+
+            case 6: char oddOrEven[5];
+                    strcpy(oddOrEven,data->response.data.oddOrEven);
+                    PRINT_INFO("\nThe Entered Number is %s",oddOrEven);
+                    break;
+        }
+        pthread_mutex_unlock(&(data->mutex));
     }
-    pthread_mutex_unlock(&(data->mutex));
 }
