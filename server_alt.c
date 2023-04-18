@@ -158,7 +158,7 @@ void *threadFunction(void *arg)
     int id = *(int *)arg;
     PRINT_INFO("\nWorker Thread Executing : {%d}\n", id);
     int shmid; // Connection shared memory id
-    if ((shmid = shmget(SHM_KEY, sizeof(shared_data_t), 0644 | IPC_CREAT)) == -1)
+    if ((shmid = shmget(clientSHM_ID[id], sizeof(shared_data_t), 0644 | IPC_CREAT)) == -1)
     {
         PRINT_ERROR("Shared memory");
         return NULL;
