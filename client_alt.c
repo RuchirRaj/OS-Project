@@ -173,6 +173,11 @@ int main()
 
         while(data->response.response_code==-1);
         pthread_mutex_lock(&(data->mutex));
+        if(data->response.response_code==404)
+        {
+            PRINT_ERROR("Error Occured. Exiting.");
+            exit(0);
+        }
         switch(choice)
         {
             case 1:
