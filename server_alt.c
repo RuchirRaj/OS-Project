@@ -169,7 +169,7 @@ void *threadFunction(void *arg)
         data->response.response_code = 0;
         data->response.server_response_code++;
     }
-    else if (strstr(data->request.op, "arithmetic") != NULL) 
+    else if (data->request.op=="arithmetic") 
     {
         int operation = data->request.param;
         int ans = arithmeticFunctions(data->request.a,data->request.b,operation);

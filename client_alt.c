@@ -166,7 +166,7 @@ int main()
         pthread_mutex_lock(&(data->mutex));
         data->request.a = num1;
         data->request.b = num2;
-        strcpy(data->request.op,"arithmetic");
+        strcpy(data->request.op,op);
         data->request.param = param;
         data->response.response_code = -1;
         pthread_mutex_unlock(&(data->mutex));
