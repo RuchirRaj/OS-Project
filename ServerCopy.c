@@ -65,42 +65,19 @@ int hash(unsigned char *str)
 int main()
 {
     int connect_shmid;
-    int clientid;
-    if (connect_shmid = shmget(SHM_KEY, sizeof(struct connectInfo), 0) == -1)
+    if ((connect_shmid = shmget(SHM_KEY, sizeof(struct connectInfo), 0644 | IPC_CREAT)) == -1)
     {
-        PRINT_ERROR("Server is not available, Server has to be started first");
-    }
-
-    struct connectInfo *connectinfo;
-
-    connectinfo = shmat(connect_shmid, NULL, 0);
-
-    if (connectinfo == (void *)-1)
-    {
-        PRINT_ERROR("Unable to attach shared memory");
+        PRINT_ERROR("Unable to Create Shared Memory");
         return 1;
     }
-
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(&(connectinfo->id_mutex), &attr);
-
-    pthread_mutex_lock(&connectinfo->id_mutex);
-    int i = 0;
-    for (i = 0; i < MAX_CLIENTS; i++)
+    struct connectInfo *connectinfo;
+    connectinfo = shmat(connect_shmid, NULL, 0);
+    if (connectinfo == (void *)-1)
     {
-        if (connectinfo->id_arr[i] == false)
-        {
-            connectinfo->id_arr[i] = true;
-            clientid = i * PRIME;
-            PRINT_INFO("You have been assigned a server, you have been assigned a client id:%d. Please remember this id", clientid);
-            break;
-        }
+        PRINT_ERROR("Unable to Attact Shared Memory");
+        return 1;
     }
-    if (i == MAX_CLIENTS)
+    while (1)
     {
-        PRINT_INFO("Server is full, Check again later");
     }
-    pthread_mutex_lock(&connectinfo->id_mutex);
 }
