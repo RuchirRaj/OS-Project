@@ -116,13 +116,13 @@ int main()
     }
     pthread_mutex_unlock(&connectinfo->id_mutex);
 
+    char tmp[NAME_SIZE];
     // requestcode => 0-no request, 1-new user request, 2-existing user request
     // requestcode => 0-no response, 1-successful registratoin, 2-non unique id
     while (1)
     {
         if (access == 0)
-        {
-            char tmp[NAME_SIZE];
+        {        
             PRINT_INFO("Please Enter a username");
             scanf("%s", tmp);
             PRINT_INFO("Name has been entered");
@@ -152,7 +152,7 @@ int main()
                 connectinfo->responsecode = 0;
                 PRINT_INFO("Username is already taken,enter a username when prompted");
             }
-            // pthread_mutex_unlock(&connectinfo->connect_server_mutex);
+            pthread_mutex_unlock(&connectinfo->connect_server_mutex);
         }
         else if (access == 1)
         {
