@@ -17,14 +17,10 @@
 #define BUF_SIZE 1024
 #define SHM_SIZE 1024
 #define NAME_SIZE 256
-#define SHM_KEY 0x1234 // Used for conntection channel
-int clientSHM_ID[MAX_CLIENTS];
-
-
+#define SHM_KEY 0x1234
+#define PRIME 1543
 pthread_t process[MAX_CLIENTS];
-int num;                    // Current number of worker threads
-int childShId[MAX_CLIENTS];
-int shmid_t[MAX_CLIENTS];
+int childShId[MAX_CLIENTS]; 
 #define PRINT_INFO(MSG, ...)                                                          \
     {                                                                                 \
         setenv("TZ", "Asia/Kolkata", 1);                                              \
@@ -45,12 +41,26 @@ int shmid_t[MAX_CLIENTS];
                __LINE__, ##__VA_ARGS__);                                              \
     }
 
-typedef struct 
+int connect_shmid;
+struct connectInfo
 {
-    char name[NAME_SIZE];
-    int key;
-    int connected;
-} client_info;
+    int requestcode;
+    int responsecode;
+    char username[NAME_SIZE];
+    int id;
+    bool id_arr[MAX_CLIENTS];
+    bool waitingid[MAX_CLIENTS];
+    bool disconnet[MAX_CLIENTS];
+    pthread_mutex_t id_mutex;
+};
+
+struct clientInfo
+{
+    int clientid;
+    char username[NAME_SIZE];
+    int requests;
+    int responses;
+};
 
 typedef struct 
 {
@@ -64,12 +74,11 @@ typedef struct
     int answer;
   } data;
 } response_info;
-
 typedef struct
 {
     int a;
     int b;
-    char op[BUF_SIZE];
+    char op[NAME_SIZE];
     int param;
 } request_info;
 
@@ -79,6 +88,17 @@ typedef struct
       request_info request;
       response_info response;
 } shared_data_t;
+
+int hash(unsigned char *str)
+{
+    int hash = 5381;
+    int c;
+
+    while (c = *str++)
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+    return hash;
+}
 
 int arithmeticFunctions(int num1, int num2, int operation)
 {
@@ -119,83 +139,122 @@ bool primeCheck(int n)
     }
     return true;
 }
-
-int hash(unsigned char *str)
-{
-    int hash = 5381;
-    int c;
-
-    while (c = *str++)
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-    return hash;
-}
-
-// void handle_sigint(int sig)
-// {
-//     PRINT_INFO("\nClosing shared memory segment.....\n");
-
-//     // Close connection Shared memory
-//     shmctl(shmid, IPC_RMID, NULL);
-
-//     // Close response Shared memory for each client
-//     for (int i = 0; i < num; i++)
-//     {
-//         shmctl(childShId[i], IPC_RMID, NULL);
-//     }
-
-//     printf("Closing worker Threads....\n");
-//     // Close worker Threads
-//     for (int i = 0; i < num; i++)
-//     {
-//         kill(*(process + i), SIGKILL);
-//     }
-//     exit(-1);
-// }
-
 void *threadFunction(void *arg)
 { 
     int id = *(int *)arg;
     PRINT_INFO("\nWorker Thread Executing : {%d}\n", id);
-    int shmid; // Connection shared memory id
-    if ((shmid = shmget(clientSHM_ID[id], sizeof(shared_data_t), 0644 | IPC_CREAT)) == -1)
-    {
-        PRINT_ERROR("Shared memory");
-        return NULL;
-    }
     shared_data_t *data;
     data = shmat(id, NULL, 0);
-    pthread_mutex_lock(&(data->mutex));
-    if(data->request.op == "prime")
+    data->response.response_code = -2;
+    while(1)
     {
-        bool ans = primeCheck(data->request.a);
-        data->response.data.trueOrFalse = ans;
-        data->response.response_code = 0;
-        data->response.server_response_code++;
+        while(data->response.response_code!=-1){};
+        pthread_mutex_lock(&(data->mutex));
+=        if(strcmp(data->request.op ,"prime")==0)
+        {
+            bool ans = primeCheck(data->request.a);
+            data->response.data.trueOrFalse = ans;
+            data->response.response_code = 0;
+            data->response.server_response_code++;
+        }
+        else if(strcmp(data->request.op,"oddeven")==0)
+        {
+            char ans[5];
+            oddOrEven(data->request.a,ans);
+            strcpy(data->response.data.oddOrEven,ans);
+            data->response.response_code = 0;
+            data->response.server_response_code++;
+        }
+        else
+        {
+            int operation = data->request.param;
+            int ans = arithmeticFunctions(data->request.a,data->request.b,operation);
+            data->response.data.answer = ans;
+            data->response.response_code = 0;
+            data->response.server_response_code++;
+        };
+        pthread_mutex_unlock(&(data->mutex));
     }
-    else if(data->request.op == "oddeven")
+}
+
+void handle_sigint(int sig)
+{
+    PRINT_INFO("\nClosing shared memory segment.....\n");
+
+    // Close connection Shared memory
+    shmctl(connect_shmid, IPC_RMID, NULL);
+
+    // Close response Shared memory for each client
+    for (int i = 0; i < MAX_CLIENTS; i++)
     {
-        char ans[5];
-        oddOrEven(data->request.a,ans);
-        strcpy(data->response.data.oddOrEven,ans);
-        data->response.response_code = 0;
-        data->response.server_response_code++;
+        shmctl(childShId[i], IPC_RMID, NULL);
     }
-    else if (data->request.op=="arithmetic") 
+
+    PRINT_INFO("Closing worker Threads....\n");
+    // Close worker Threads
+    for (int i = 0; i < MAX_CLIENTS; i++)
     {
-        int operation = data->request.param;
-        int ans = arithmeticFunctions(data->request.a,data->request.b,operation);
-        data->response.data.answer = ans;
-        data->response.response_code = 0;
-        data->response.server_response_code++;
-    };
-    pthread_mutex_unlock(&(data->mutex));
+        kill(*(process + i), SIGKILL);
+    }
+    exit(-1);
 }
 
 int main()
 {
-    // Properly Implement name part later
-    // char name[NAME_SIZE];
-    // int id = 0;
-    // childShId[id] = hash(name);  
+
+    struct clientInfo clientinfo[MAX_CLIENTS];
+    if ((connect_shmid = shmget(SHM_KEY, sizeof(struct connectInfo), 0644 | IPC_CREAT)) == -1)
+    {
+        PRINT_ERROR("Unable to Create Shared Memory");
+        return 1;
+    }
+    PRINT_INFO("%d", connect_shmid);
+    struct connectInfo *connectinfo;
+    connectinfo = shmat(connect_shmid, NULL, 0);
+    if (connectinfo == (void *)-1)
+    {
+        PRINT_ERROR("Unable to Attact Shared Memory");
+        return 1;
+    }
+    PRINT_INFO("Shared Memory Successfully created");
+    signal(SIGINT, handle_sigint);
+    // pthread_mutexattr_t connect_server_mutex_attr;
+    // pthread_mutexattr_init(&connect_server_mutex_attr);
+    // pthread_mutexattr_setpshared(&connect_server_mutex_attr, PTHREAD_PROCESS_SHARED);
+    // pthread_mutex_init(&(connectinfo->connect_server_mutex), &connect_server_mutex_attr);
+
+    while (1)
+    {
+        // requestcode => 0-no request, 1-new user request, 2-existing user request
+        // requestcode => 0-no response, 1-successful registratoin, 2-non unique id
+        if (connectinfo->requestcode == 0)
+        {
+            continue;
+        }
+        else if (connectinfo->requestcode == 1)
+        {
+            for (int i = 0; i < MAX_CLIENTS; i++)
+            {
+                if (strcmp(connectinfo->username, clientinfo[i].username) == 0)
+                {
+                    connectinfo->requestcode = 0;
+                    connectinfo->responsecode = 2;
+                    continue;
+                }
+            }
+            clientinfo[(connectinfo->id - PRIME) / PRIME].clientid = connectinfo->id;
+            strcpy(clientinfo[(connectinfo->id - PRIME) / PRIME].username, connectinfo->username);
+            int client_id = (connectinfo->id - PRIME) / PRIME;
+            if ((childShId[client_id] = shmget(client_id, sizeof(shared_data_t), 0644 | IPC_CREAT)) == -1)
+            {
+                PRINT_ERROR("Shared memory");
+                exit(0);
+            }
+            process[client_id] = pthread_create(&process[client_id], NULL, threadFunction, (void *)&childShId[client_id]);
+            
+            connectinfo->requestcode = 0;
+            connectinfo->responsecode = 1;
+
+        }
+    }
 }
