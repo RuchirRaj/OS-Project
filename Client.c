@@ -127,20 +127,20 @@ int main()
             scanf("%s", tmp);
             PRINT_INFO("Name has been entered");
             PRINT_INFO("%s", tmp);
-            // pthread_mutex_lock(&connectinfo->connect_server_mutex);
+            pthread_mutex_lock(&connectinfo->connect_server_mutex);
             PRINT_INFO("%s", tmp);
             strcpy(connectinfo->username, tmp);
             PRINT_INFO("Requested Server");
             connectinfo->id = clientid;
             connectinfo->requestcode = 1;
 
-            // pthread_mutex_unlock(&connectinfo->connect_server_mutex);
+            pthread_mutex_unlock(&connectinfo->connect_server_mutex);
 
             while (connectinfo->responsecode == 0)
             {
             }
 
-            // pthread_mutex_lock(&connectinfo->connect_server_mutex);
+            pthread_mutex_lock(&connectinfo->connect_server_mutex);
             if (connectinfo->responsecode == 1)
             {
                 PRINT_INFO("Server has been successfuly Assigned");
@@ -182,6 +182,6 @@ int main()
         //     {
         //     }
         // }
-        shmdt(connectinfo);
+        //shmdt(connectinfo); //why the fuck was this hereW
     }
 }

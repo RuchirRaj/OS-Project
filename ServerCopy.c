@@ -109,7 +109,7 @@ int main()
     {
         // requestcode => 0-no request, 1-new user request, 2-existing user request
         // requestcode => 0-no response, 1-successful registratoin, 2-non unique id
-        // pthread_mutex_lock(&connectinfo->connect_server_mutex);
+        pthread_mutex_lock(&connectinfo->connect_server_mutex);
         if (connectinfo->requestcode == 1)
         {
             bool flag = false;
@@ -135,7 +135,7 @@ int main()
                 connectinfo->responsecode = 1;
             }
         }
-        // pthread_mutex_unlock(&connectinfo->connect_server_mutex);
+        pthread_mutex_unlock(&connectinfo->connect_server_mutex);
         while (connectinfo->requestcode == 0)
         {
         }
