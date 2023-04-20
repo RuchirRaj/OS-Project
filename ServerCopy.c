@@ -50,6 +50,7 @@ struct connectInfo
     bool waitingid[MAX_CLIENTS];
     bool disconnet[MAX_CLIENTS];
     pthread_mutex_t id_mutex;
+    pthread_mutex_t connect_server_mutex;
 };
 
 struct clientInfo
@@ -99,34 +100,70 @@ int main()
     }
     PRINT_INFO("Shared Memory Successfully created");
     signal(SIGINT, handle_sigint);
-    // pthread_mutexattr_t connect_server_mutex_attr;
-    // pthread_mutexattr_init(&connect_server_mutex_attr);
-    // pthread_mutexattr_setpshared(&connect_server_mutex_attr, PTHREAD_PROCESS_SHARED);
-    // pthread_mutex_init(&(connectinfo->connect_server_mutex), &connect_server_mutex_attr);
-
+    pthread_mutexattr_t connect_server_mutex_attr;
+    pthread_mutexattr_init(&connect_server_mutex_attr);
+    pthread_mutexattr_setpshared(&connect_server_mutex_attr, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(&(connectinfo->connect_server_mutex), &connect_server_mutex_attr);
+    bool flag;
     while (1)
     {
         // requestcode => 0-no request, 1-new user request, 2-existing user request
         // requestcode => 0-no response, 1-successful registratoin, 2-non unique id
-        if (connectinfo->requestcode == 0)
+        // pthread_mutex_lock(&connectinfo->connect_server_mutex);
+        if (connectinfo->requestcode == 1)
         {
-            continue;
-        }
-        else if (connectinfo->requestcode == 1)
-        {
+            bool flag = false;
             for (int i = 0; i < MAX_CLIENTS; i++)
             {
-                if (strcmp(connectinfo->username, clientinfo[i].username) == 0)
+                if ((strcmp(connectinfo->username, clientinfo[i].username)) == 0)
                 {
                     connectinfo->requestcode = 0;
-                    connectinfo->responsecode = 2;
-                    continue;
+                    strcpy(connectinfo->username, "");
+                    flag = true;
                 }
             }
-            clientinfo[(connectinfo->id - PRIME) / PRIME].clientid = connectinfo->id;
-            strcpy(clientinfo[(connectinfo->id - PRIME) / PRIME].username, connectinfo->username);
-            connectinfo->requestcode = 0;
-            connectinfo->responsecode = 1;
+            if (flag == true)
+            {
+                connectinfo->requestcode = 0;
+                connectinfo->responsecode = 2;
+            }
+            else
+            {
+                clientinfo[(connectinfo->id - PRIME) / PRIME].clientid = connectinfo->id;
+                strcpy(clientinfo[(connectinfo->id - PRIME) / PRIME].username, connectinfo->username);
+                connectinfo->requestcode = 0;
+                connectinfo->responsecode = 1;
+            }
         }
+        // pthread_mutex_unlock(&connectinfo->connect_server_mutex);
+        while (connectinfo->requestcode == 0)
+        {
+        }
+
+        // while (connectinfo->requestcode == 0)
+        // {
+        // }
+        // flag = false;
+        // if (connectinfo->requestcode == 1)
+        // {
+        //     for (int i = 0; i < MAX_CLIENTS; i++)
+        //     {
+        //         PRINT_INFO("%s \t %s \n", clientinfo[i].username, connectinfo->username);
+        //         if ((strcmp(connectinfo->username, clientinfo[i].username)) == 0)
+        //         {
+        //             PRINT_INFO("%d \n", 69);
+        //             connectinfo->requestcode = 0;
+        //             connectinfo->responsecode = 2;
+        //             flag = true;
+        //         }
+        //     }
+        //     if (flag == false)
+        //     {
+        //         clientinfo[(connectinfo->id - PRIME) / PRIME].clientid = connectinfo->id;
+        //         strcpy(clientinfo[(connectinfo->id - PRIME) / PRIME].username, connectinfo->username);
+        //         connectinfo->requestcode = 0;
+        //         connectinfo->responsecode = 1;
+        //     }
+        //     PRINT_INFO("%d \n", connectinfo->responsecode);
     }
 }
