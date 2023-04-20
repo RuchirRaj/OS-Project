@@ -17,7 +17,7 @@
 #define BUF_SIZE 1024
 #define SHM_SIZE 1024
 #define NAME_SIZE 256
-#define SHM_KEY 0x1111
+#define SHM_KEY 0x1234
 #define PRIME 1543
 #define PRINT_INFO(MSG, ...)                                                          \
     {                                                                                 \
@@ -68,7 +68,8 @@ int main()
 
     int clientid;
     int access = 0;
-    if (connect_shmid = shmget(SHM_KEY, sizeof(struct connectInfo), 0) == -1)
+
+    if ((connect_shmid = shmget(SHM_KEY, sizeof(struct connectInfo), 0)) == -1)
     {
         PRINT_ERROR("Server is not available, Server has to be started first");
         return 1;
@@ -77,9 +78,8 @@ int main()
     {
         PRINT_INFO("Server Exists");
     }
-
+    PRINT_INFO("%d", connect_shmid);
     struct connectInfo *connectinfo;
-
     connectinfo = shmat(connect_shmid, NULL, 0);
 
     if (connectinfo == (void *)-1)
@@ -141,4 +141,5 @@ int main()
         {
         }
     }
+    shmdt(connectinfo);
 }

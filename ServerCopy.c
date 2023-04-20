@@ -17,7 +17,7 @@
 #define BUF_SIZE 1024
 #define SHM_SIZE 1024
 #define NAME_SIZE 256
-#define SHM_KEY 0x1111
+#define SHM_KEY 0x1234
 #define PRIME 1543
 #define PRINT_INFO(MSG, ...)                                                          \
     {                                                                                 \
@@ -89,6 +89,7 @@ int main()
         PRINT_ERROR("Unable to Create Shared Memory");
         return 1;
     }
+    PRINT_INFO("%d", connect_shmid);
     struct connectInfo *connectinfo;
     connectinfo = shmat(connect_shmid, NULL, 0);
     if (connectinfo == (void *)-1)
