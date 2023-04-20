@@ -17,7 +17,7 @@
 #define BUF_SIZE 1024
 #define SHM_SIZE 1024
 #define NAME_SIZE 256
-#define SHM_KEY 0x1234
+#define SHM_KEY 0x1111
 #define PRIME 1543
 #define PRINT_INFO(MSG, ...)                                                          \
     {                                                                                 \
@@ -39,6 +39,7 @@
                __LINE__, ##__VA_ARGS__);                                              \
     }
 
+int connect_shmid;
 struct connectInfo
 {
     int requestcode;
@@ -64,11 +65,17 @@ int hash(unsigned char *str)
 
 int main()
 {
-    int connect_shmid;
+
     int clientid;
+    int access = 0;
     if (connect_shmid = shmget(SHM_KEY, sizeof(struct connectInfo), 0) == -1)
     {
         PRINT_ERROR("Server is not available, Server has to be started first");
+        return 1;
+    }
+    else
+    {
+        PRINT_INFO("Server Exists");
     }
 
     struct connectInfo *connectinfo;
@@ -93,7 +100,7 @@ int main()
         if (connectinfo->id_arr[i] == false)
         {
             connectinfo->id_arr[i] = true;
-            clientid = i * PRIME;
+            clientid = i * PRIME + PRIME;
             PRINT_INFO("You have been assigned a server, you have been assigned a client id:%d. Please remember this id", clientid);
             break;
         }
@@ -102,5 +109,36 @@ int main()
     {
         PRINT_INFO("Server is full, Check again later");
     }
-    pthread_mutex_lock(&connectinfo->id_mutex);
+    pthread_mutex_unlock(&connectinfo->id_mutex);
+
+    char tmp[NAME_SIZE];
+    PRINT_INFO("Please Enter a username");
+    scanf("%s", tmp);
+    // requestcode => 0-no request, 1-new user request, 2-existing user request
+    // requestcode => 0-no response, 1-successful registratoin, 2-non unique id
+    while (1)
+    {
+        if (access == 0)
+        {
+            strcpy(connectinfo->username, tmp);
+            connectinfo->id = clientid;
+            connectinfo->requestcode = 1;
+            while (connectinfo->responsecode == 0)
+            {
+            }
+            if (connectinfo->responsecode == 1)
+            {
+                PRINT_INFO("Server has been sucessfully assigned");
+                access = 1;
+            }
+            if (connectinfo->responsecode == 2)
+            {
+                PRINT_INFO("username already exists in server, Enter another username");
+                scanf("%s", tmp);
+            }
+        }
+        else if (access == 1)
+        {
+        }
+    }
 }

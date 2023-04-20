@@ -17,7 +17,7 @@
 #define BUF_SIZE 1024
 #define SHM_SIZE 1024
 #define NAME_SIZE 256
-#define SHM_KEY 0x1234
+#define SHM_KEY 0x1111
 #define PRIME 1543
 #define PRINT_INFO(MSG, ...)                                                          \
     {                                                                                 \
@@ -39,6 +39,7 @@
                __LINE__, ##__VA_ARGS__);                                              \
     }
 
+int connect_shmid;
 struct connectInfo
 {
     int requestcode;
@@ -49,6 +50,14 @@ struct connectInfo
     bool waitingid[MAX_CLIENTS];
     bool disconnet[MAX_CLIENTS];
     pthread_mutex_t id_mutex;
+};
+
+struct clientInfo
+{
+    int clientid;
+    char username[NAME_SIZE];
+    int requests;
+    int responses;
 };
 
 int hash(unsigned char *str)
@@ -62,9 +71,19 @@ int hash(unsigned char *str)
     return hash;
 }
 
+void handle_sigint(int sig)
+{
+    PRINT_INFO("\nClosing shared memory segment.....\n");
+
+    // Close connection Shared memory
+    shmctl(connect_shmid, IPC_RMID, NULL);
+    exit(-1);
+}
+
 int main()
 {
-    int connect_shmid;
+
+    struct clientInfo clientinfo[MAX_CLIENTS];
     if ((connect_shmid = shmget(SHM_KEY, sizeof(struct connectInfo), 0644 | IPC_CREAT)) == -1)
     {
         PRINT_ERROR("Unable to Create Shared Memory");
@@ -77,7 +96,36 @@ int main()
         PRINT_ERROR("Unable to Attact Shared Memory");
         return 1;
     }
+    PRINT_INFO("Shared Memory Successfully created");
+    signal(SIGINT, handle_sigint);
+    // pthread_mutexattr_t connect_server_mutex_attr;
+    // pthread_mutexattr_init(&connect_server_mutex_attr);
+    // pthread_mutexattr_setpshared(&connect_server_mutex_attr, PTHREAD_PROCESS_SHARED);
+    // pthread_mutex_init(&(connectinfo->connect_server_mutex), &connect_server_mutex_attr);
+
     while (1)
     {
+        // requestcode => 0-no request, 1-new user request, 2-existing user request
+        // requestcode => 0-no response, 1-successful registratoin, 2-non unique id
+        if (connectinfo->requestcode == 0)
+        {
+            continue;
+        }
+        else if (connectinfo->requestcode == 1)
+        {
+            for (int i = 0; i < MAX_CLIENTS; i++)
+            {
+                if (strcmp(connectinfo->username, clientinfo[i].username) == 0)
+                {
+                    connectinfo->requestcode = 0;
+                    connectinfo->responsecode = 2;
+                    continue;
+                }
+            }
+            clientinfo[(connectinfo->id - PRIME) / PRIME].clientid = connectinfo->id;
+            strcpy(clientinfo[(connectinfo->id - PRIME) / PRIME].username, connectinfo->username);
+            connectinfo->requestcode = 0;
+            connectinfo->responsecode = 1;
+        }
     }
 }
