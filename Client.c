@@ -291,7 +291,7 @@ int main()
             //     PRINT_INFO("CONNECTED TO COMMUNICATION CHANNEL");
             // }
             PRINT_INFO("%d",comm_shmid);
-            struct shared_data_t *data;
+            // struct shared_data_t *data;
             data = shmat(comm_shmid, NULL, 0);
             connected = true;
             PRINT_INFO("CONNECTED TO COMMUNICATION CHANNEL");
