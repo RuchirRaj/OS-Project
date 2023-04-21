@@ -255,7 +255,7 @@ int main()
             strcpy(connectinfo->username, tmp);
             connectinfo->id = clientid;
             connectinfo->requestcode = 1;
-
+            PRINT_INFO("Making register request to server");    
             pthread_mutex_unlock(&connectinfo->connect_server_mutex);
             while (connectinfo->responsecode == 0)
             {
@@ -384,11 +384,13 @@ int main()
                 PRINT_INFO("\033[1;0mRequested operation : \033[1;36m%s\033[1;0m",data->request.op);
                 data->request.param = param;
                 data->response.response_code = -1;
+                PRINT_INFO("Sending request to server through communication channel");
                 pthread_mutex_unlock(&(data->mutex));
 
 
                 while(data->response.response_code==-1);
                 pthread_mutex_lock(&(data->mutex));
+                PRINT_INFO("Recieved a response from server.");
                 if(data->response.response_code==404)
                 {
                     PRINT_ERROR("Error Occured. Exiting.");

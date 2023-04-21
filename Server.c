@@ -19,6 +19,8 @@
 #define NAME_SIZE 256
 #define SHM_KEY 0x1234
 #define PRIME 1543
+int total_requests_served = 0;
+int number_of_connected_clients = 0;
 pthread_t process[MAX_CLIENTS];
 int childShId[MAX_CLIENTS]; 
 #define PRINT_INFO(MSG, ...)                                                          \
@@ -80,7 +82,7 @@ typedef struct
 typedef struct
 {
     float a;
-    float b;
+    float b;    
     char op[NAME_SIZE];
     int param;
 } request_info;
@@ -151,6 +153,7 @@ void *threadFunction(void *arg)
     PRINT_INFO("\nWorker Thread Executing : {%d}\n", id);
     shared_data_t *data;
     data = shmat(childShId[id], NULL, 0);
+    PRINT_INFO("\033[1;32mCommunication Channel Created");
     data->response.response_code = -2;
     while(1)
     {
@@ -162,6 +165,7 @@ void *threadFunction(void *arg)
             data->response.data.trueOrFalse = ans;
             data->response.response_code = 0;
             data->response.server_response_code++;
+            PRINT_INFO("Successfully responded to client.");
         }
         else if(strcmp(data->request.op,"oddeven")==0)
         {
@@ -170,6 +174,7 @@ void *threadFunction(void *arg)
             strcpy(data->response.data.oddOrEven,ans);
             data->response.response_code = 0;
             data->response.server_response_code++;
+            PRINT_INFO("Successfully responded to client.");
         }
         else if(strcmp(data->request.op,"unregister")==0)
         {
@@ -185,6 +190,7 @@ void *threadFunction(void *arg)
             shmctl(childShId[id], IPC_RMID, NULL);
             PRINT_INFO("\033[1;31mUnregistered successfully for client id: %d", (connectinfo->id - PRIME) / PRIME);
             pthread_cancel(pthread_self());
+            number_of_connected_clients--;
         }
         else if(strcmp(data->request.op,"disconnect")==0)
         {
@@ -196,7 +202,7 @@ void *threadFunction(void *arg)
             data->response.server_response_code++;
             pthread_mutex_unlock(&connectinfo->id_mutex);
             pthread_mutex_unlock(&(data->mutex));
-            PRINT_INFO("\033[1;31mDisconnected successfully for client id: %d\033[1;0m", (connectinfo->id - PRIME) / PRIME);
+            PRINT_INFO("\033[1;31mDisconnected successfully for client id: %d\033[0m ", (connectinfo->id - PRIME) / PRIME);
             pthread_cancel(pthread_self());
         }
         else
@@ -206,7 +212,20 @@ void *threadFunction(void *arg)
             data->response.data.answer = ans;
             data->response.response_code = 0;
             data->response.server_response_code++;
+            PRINT_INFO("Successfully responded to client.");
+
         };
+        total_requests_served++;
+        PRINT_INFO("\033[1;34mServer Summary:\033[0m");
+        PRINT_INFO("\033[0m");
+        PRINT_INFO("LIST OF CONNECTED CLIENTS: ");
+        for(int i = 0; i< MAX_CLIENTS;i++)
+        {
+            if((strcmp(clientinfo[i].username,"")!=0)&&(strcmp(clientinfo[i].username,"\0")!=0))
+            PRINT_INFO("%s",clientinfo[i].username);
+        }
+        PRINT_INFO("Number Of Requests Served of current client %d",data->response.server_response_code);
+        PRINT_INFO("Total Requests Served: %d",total_requests_served);
         pthread_mutex_unlock(&(data->mutex));
     }
 }
@@ -236,6 +255,8 @@ void handle_sigint(int sig)
 int main()
 {
     
+    PRINT_INFO("\033[1;32mServer Started");
+    PRINT_INFO("\033[0m");
     if ((connect_shmid = shmget(SHM_KEY, sizeof(struct connectInfo), 0644 | IPC_CREAT)) == -1)
     {
         PRINT_ERROR("Unable to Create Shared Memory");
@@ -254,7 +275,8 @@ int main()
         connectinfo->disconnet[i] = true;
     }
     
-    PRINT_INFO("Shared Memory Successfully created");
+    PRINT_INFO("\033[1;32mConnect Channel Successfully Created\033[0m");
+    PRINT_INFO("\033[0m");
     signal(SIGINT, handle_sigint);
     pthread_mutexattr_t connect_server_mutex_attr;
     pthread_mutexattr_init(&connect_server_mutex_attr);
@@ -303,6 +325,7 @@ int main()
                 
                 connectinfo->responsecode = 1;
             }
+            number_of_connected_clients++;
         }
         pthread_mutex_unlock(&connectinfo->connect_server_mutex);
         while (connectinfo->requestcode == 0)
