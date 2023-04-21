@@ -352,54 +352,54 @@ int main()
                 switch(choice)
                 {
                     case 1: PRINT_INFO("\033[1;36mEnter First Number!");
-                            scanf("%f",&num1);
+                            while(scanf("%f",&num1) != 1){ flushInput(); }
                             printf("\033[1;0m");
                             PRINT_INFO("\033[1;36mEnter Second Number!")
-                            scanf("%f",&num2);
+                            while(scanf("%f",&num2) != 1){ flushInput(); }
                             printf("\033[1;0m");
                             param = 1;
                             strcpy(op,"arithmetic");
                             break;
 
                     case 2: PRINT_INFO("\033[1;36mEnter First Number!");
-                            scanf("%f",&num1);
+                            while(scanf("%f",&num1) != 1){ flushInput(); }
                             printf("\033[1;0m");
                             PRINT_INFO("\033[1;36mEnter Second Number!")
-                            scanf("%f",&num2);
+                            while(scanf("%f",&num2) != 1){ flushInput(); }
                             printf("\033[1;0m");
                             param = 2;
                             strcpy(op,"arithmetic");
                             break;
 
                     case 3: PRINT_INFO("\033[1;36mEnter First Number!");
-                            scanf("%f",&num1);
+                            while(scanf("%f",&num1) != 1){ flushInput(); }
                             printf("\033[1;0m");
                             PRINT_INFO("\033[1;36mEnter Second Number!")
-                            scanf("%f",&num2);
+                            while(scanf("%f",&num2) != 1){ flushInput(); }
                             printf("\033[1;0m");
                             param = 3;
                             strcpy(op,"arithmetic");
                             break;
 
                     case 4: PRINT_INFO("\033[1;36mEnter First Number!");
-                            scanf("%f",&num1);
+                            while(scanf("%f",&num1) != 1){ flushInput(); }
                             printf("\033[1;0m");
                             PRINT_INFO("\033[1;36mEnter Second Number!")
-                            scanf("%f",&num2);
+                            while(scanf("%f",&num2) != 1){ flushInput(); }
                             printf("\033[1;0m");
                             param = 4;
                             strcpy(op,"arithmetic");
                             break;
                     
                     case 5: PRINT_INFO("\033[1;36mEnter The Number");
-                            scanf("%f",&num1);
+                            while(scanf("%f",&num1) != 1){ flushInput(); }
                             printf("\033[1;0m");
                             strcpy(op,"prime");
                             break;
 
                     
                     case 6: PRINT_INFO("\033[1;36mEnter The Number");
-                            scanf("%f",&num1);
+                            while(scanf("%f",&num1) != 1){ flushInput(); }
                             printf("\033[1;0m");
                             strcpy(op,"oddeven");
                             break;
