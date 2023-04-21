@@ -188,7 +188,7 @@ void *threadFunction(void *arg)
 
             pthread_mutex_unlock(&(data->mutex));
             shmctl(childShId[id], IPC_RMID, NULL);
-            PRINT_INFO("\033[1;31mUnregistered successfully for client id: %d", (connectinfo->id - PRIME) / PRIME);
+            PRINT_INFO("\033[1;31mUnregistered successfully for client id: %d", id);
             pthread_cancel(pthread_self());
             number_of_connected_clients--;
         }
@@ -202,7 +202,7 @@ void *threadFunction(void *arg)
             data->response.server_response_code++;
             pthread_mutex_unlock(&connectinfo->id_mutex);
             pthread_mutex_unlock(&(data->mutex));
-            PRINT_INFO("\033[1;31mDisconnected successfully for client id: %d\033[0m ", (connectinfo->id - PRIME) / PRIME);
+            PRINT_INFO("\033[1;31mDisconnected successfully for client id: %d\033[0m ", id);
             pthread_cancel(pthread_self());
         }
         else
@@ -224,7 +224,7 @@ void *threadFunction(void *arg)
             if((strcmp(clientinfo[i].username,"")!=0)&&(strcmp(clientinfo[i].username,"\0")!=0))
             PRINT_INFO("%s",clientinfo[i].username);
         }
-        PRINT_INFO("Number Of Requests Served of current client %d",data->response.server_response_code);
+        PRINT_INFO("Number Of Requests Served of Client %s: %d",clientinfo[id].username,data->response.server_response_code);
         PRINT_INFO("Total Requests Served: %d",total_requests_served);
         pthread_mutex_unlock(&(data->mutex));
     }
