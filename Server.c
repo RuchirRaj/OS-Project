@@ -166,6 +166,14 @@ void *threadFunction(void *arg)
             data->response.response_code = 0;
             data->response.server_response_code++;
         }
+        else if(strcmp(data->request.op,"unregister")==0)
+        {
+            char ans[5];
+            oddOrEven(data->request.a,ans);
+            strcpy(data->response.data.oddOrEven,ans);
+            data->response.response_code = 0;
+            data->response.server_response_code++;
+        }
         else
         {
             int operation = data->request.param;

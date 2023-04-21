@@ -290,6 +290,10 @@ int main()
                 int ans;
                 switch(choice)
                 {
+                    case 0:
+                            PRINT_INFO("\033[1;32mUnRegistration successful");
+                            access = 0;
+                            break;
                     case 1: ans= data->response.data.answer;
                             PRINT_INFO("\033[1;32mThe Answer is %d",ans);
                             break;
