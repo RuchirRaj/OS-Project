@@ -42,6 +42,7 @@ int childShId[MAX_CLIENTS];
     }
 
 int connect_shmid;
+
 struct connectInfo
 {
     int requestcode;
@@ -53,7 +54,7 @@ struct connectInfo
     bool disconnet[MAX_CLIENTS];
     pthread_mutex_t id_mutex;
     pthread_mutex_t connect_server_mutex;
-} connectInfo;
+};
 
 struct clientInfo
 {
@@ -63,6 +64,7 @@ struct clientInfo
     int responses;
 };
 
+struct clientInfo clientinfo[MAX_CLIENTS];
 typedef struct 
 {
   int response_code;
@@ -142,10 +144,13 @@ bool primeCheck(int n)
 }
 void *threadFunction(void *arg)
 { 
+    struct connectInfo *connectinfo;
+    connectinfo = shmat(connect_shmid, NULL, 0);
+    
     int id = *(int *)arg;
     PRINT_INFO("\nWorker Thread Executing : {%d}\n", id);
     shared_data_t *data;
-    data = shmat(id, NULL, 0);
+    data = shmat(childShId[id], NULL, 0);
     data->response.response_code = -2;
     while(1)
     {
@@ -168,11 +173,31 @@ void *threadFunction(void *arg)
         }
         else if(strcmp(data->request.op,"unregister")==0)
         {
-            char ans[5];
-            oddOrEven(data->request.a,ans);
-            strcpy(data->response.data.oddOrEven,ans);
+            pthread_mutex_lock(&connectinfo->id_mutex);
+            connectinfo->id_arr[id] = false;
+            connectinfo->disconnet[id] = true;
+            strcpy(clientinfo[id].username, "");
             data->response.response_code = 0;
             data->response.server_response_code++;
+            pthread_mutex_unlock(&connectinfo->id_mutex);
+
+            pthread_mutex_unlock(&(data->mutex));
+            shmctl(childShId[id], IPC_RMID, NULL);
+            PRINT_INFO("\033[1;31mUnregistered successfully for client id: %d", (connectinfo->id - PRIME) / PRIME);
+            pthread_cancel(pthread_self());
+        }
+        else if(strcmp(data->request.op,"disconnect")==0)
+        {
+            pthread_mutex_lock(&connectinfo->id_mutex);
+            connectinfo->id_arr[id] = true;
+            connectinfo->disconnet[id] = true;   
+            strcpy(clientinfo[id].username, "");
+            data->response.response_code = 0;
+            data->response.server_response_code++;
+            pthread_mutex_unlock(&connectinfo->id_mutex);
+            pthread_mutex_unlock(&(data->mutex));
+            PRINT_INFO("\033[1;31mDisconnected successfully for client id: %d\033[1;0m", (connectinfo->id - PRIME) / PRIME);
+            pthread_cancel(pthread_self());
         }
         else
         {
@@ -210,8 +235,7 @@ void handle_sigint(int sig)
 
 int main()
 {
-
-    struct clientInfo clientinfo[MAX_CLIENTS];
+    
     if ((connect_shmid = shmget(SHM_KEY, sizeof(struct connectInfo), 0644 | IPC_CREAT)) == -1)
     {
         PRINT_ERROR("Unable to Create Shared Memory");
@@ -225,6 +249,11 @@ int main()
         PRINT_ERROR("Unable to Attact Shared Memory");
         return 1;
     }
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        connectinfo->disconnet[i] = true;
+    }
+    
     PRINT_INFO("Shared Memory Successfully created");
     signal(SIGINT, handle_sigint);
     pthread_mutexattr_t connect_server_mutex_attr;
@@ -241,6 +270,12 @@ int main()
         {
             int flag = 0;
             connectinfo->requestcode = 0;
+            if(connectinfo->id != 0){
+                int clientId = (connectinfo->id - PRIME) / PRIME;
+                if(connectinfo->id_arr[clientId] == false && connectinfo->disconnet[clientId] == false){
+                    flag = 1;
+                }
+            }
             for (int i = 0; i < MAX_CLIENTS; i++)
             {
                 if (strcmp(connectinfo->username, clientinfo[i].username) == 0)
@@ -253,6 +288,8 @@ int main()
             {
                 connectinfo->responsecode = 2;
             }else{
+                int clientId = (connectinfo->id - PRIME) / PRIME;
+                connectinfo->disconnet[clientId] = false;
                 clientinfo[(connectinfo->id - PRIME) / PRIME].clientid = connectinfo->id;
                 strcpy(clientinfo[(connectinfo->id - PRIME) / PRIME].username, connectinfo->username);
                 int client_id = (connectinfo->id - PRIME) / PRIME;
@@ -261,7 +298,7 @@ int main()
                     PRINT_ERROR("Shared memory");
                     exit(0);
                 }
-                process[client_id] = pthread_create(&process[client_id], NULL, threadFunction, (void *)&childShId[client_id]);
+                process[client_id] = pthread_create(&process[client_id], NULL, threadFunction, (void *)&client_id);
                 
                 
                 connectinfo->responsecode = 1;
