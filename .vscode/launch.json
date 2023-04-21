@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/home/ruchir/College/OS/Test2",
-      "program": "/home/ruchir/College/OS/Test2/build/Debug/outDebug",
+      "cwd": "/home/ruchir/College/OS/Test3/OS-Project",
+      "program": "/home/ruchir/College/OS/Test3/OS-Project/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
