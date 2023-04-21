@@ -125,8 +125,6 @@ void handle_sigint(int sig)
                 PRINT_INFO("\033[1;31mEnter a valid Choice");
                 break;
     }
-    printf("adasd\033[1;0m");
-
     pthread_mutex_lock(&(data->mutex));
     data->request.a = 0;
     data->request.b = 0;
@@ -224,7 +222,7 @@ int main()
                 PRINT_INFO("\033[1;31mID already in use, Client is still active");
             clientid = enteredId;
             pthread_mutex_lock(&connectinfo->id_mutex);
-            connectinfo->id_arr[client_ID/PRIME - 1] = true;
+            connectinfo->id_arr[clientid/PRIME - 1] = true;
             pthread_mutex_unlock(&connectinfo->id_mutex);
             idAssigned = true;
             break;
@@ -238,7 +236,7 @@ int main()
             break;
         }
     }
-    client_ID = clientid * PRIME + PRIME;
+    client_ID = clientid;
 
     char tmp[NAME_SIZE];
     // requestcode => 0-no request, 1-new user request, 2-existing user request
