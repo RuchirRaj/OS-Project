@@ -98,8 +98,15 @@ int hash(unsigned char *str)
     return hash;
 }
 
+void flushInput(){
+  int c;
+  while((c = getchar()) != EOF && c != '\n')
+        /* discard */ ;  
+}
+
 void handle_sigint(int sig)
 {
+    printf("\033[1;0m");
     PRINT_INFO("\033[1;31mExiting.....\033[1;0m");
     if(!connected){
         if(idAssigned){
@@ -108,10 +115,17 @@ void handle_sigint(int sig)
         exit(-1);
     }
     int choice;
-    PRINT_INFO("1. Disconnect from the server and exit.");
-    PRINT_INFO("2. Unregister from the server and exit.");
+    PRINT_INFO("\033[1;36m1.\033[1;0m Disconnect from the server and exit.");
+    PRINT_INFO("\033[1;36m2.\033[1;0m Unregister from the server and exit.");
     PRINT_INFO("\033[1;35mEnter an Option: ");
-    scanf("%d",&choice);
+    while(scanf("%d", &choice) != 1)
+    {
+        flushInput();
+        printf("\033[1;0m");
+        PRINT_INFO("\033[1;31mEnter a valid Choice\033[1;35m");
+    }
+    flushInput();
+    printf("\033[1;0m");
     switch(choice)
     {   
         case 1: PRINT_INFO("\033[1;36mDisconnecting");
@@ -188,10 +202,16 @@ int main()
     {
         int c = 0;
         PRINT_INFO("Welcome, Kindly select one of the option.");
-        PRINT_INFO("1. New user");
-        PRINT_INFO("2. Existing Useer.");
+        PRINT_INFO("\033[1;36m1.\033[1;0m New user");
+        PRINT_INFO("\033[1;36m2.\033[1;0m Existing Useer.");
         PRINT_INFO("\033[1;35mEnter an Option: ");
-        scanf("%d", &c);
+        while(scanf("%d", &c) != 1)
+        {
+            flushInput();
+            printf("\033[1;0m");
+            PRINT_INFO("\033[1;31mEnter a valid Choice\033[1;35m");
+        }
+        flushInput();
         printf("\033[1;0m");
         idAssigned = false;
         switch (c)
@@ -316,15 +336,16 @@ int main()
             int param = -1;
             while(1)
             {
+                printf("\n");
                 PRINT_INFO("Welcome, Kindly select one of the option.");
-                PRINT_INFO("1. Add Two Numbers.");
-                PRINT_INFO("2. Subtract Two Numbers.");
-                PRINT_INFO("3. Multiply Two Numbers.");
-                PRINT_INFO("4. Divide Two Numbers.");
-                PRINT_INFO("5. Check If A Number is Prime.");
-                PRINT_INFO("6. Check If A Number is Odd or Even.");
-                PRINT_INFO("7. Disconnect from the server and exit.");
-                PRINT_INFO("8. Unregister from the server and exit.");
+                PRINT_INFO("\033[1;36m1.\033[1;0m Add Two Numbers.");
+                PRINT_INFO("\033[1;36m2.\033[1;0m Subtract Two Numbers.");
+                PRINT_INFO("\033[1;36m3.\033[1;0m Multiply Two Numbers.");
+                PRINT_INFO("\033[1;36m4.\033[1;0m Divide Two Numbers.");
+                PRINT_INFO("\033[1;36m5.\033[1;0m Check If A Number is Prime.");
+                PRINT_INFO("\033[1;36m6.\033[1;0m Check If A Number is Odd or Even.");
+                PRINT_INFO("\033[1;36m7.\033[1;0m Disconnect from the server and exit.");
+                PRINT_INFO("\033[1;36m8.\033[1;0m Unregister from the server and exit.");
                 PRINT_INFO("\033[1;35mEnter an Option: ")
                 scanf("%d",&choice);
                 printf("\033[1;0m");
@@ -332,44 +353,54 @@ int main()
                 {
                     case 1: PRINT_INFO("\033[1;36mEnter First Number!");
                             scanf("%f",&num1);
+                            printf("\033[1;0m");
                             PRINT_INFO("\033[1;36mEnter Second Number!")
                             scanf("%f",&num2);
+                            printf("\033[1;0m");
                             param = 1;
                             strcpy(op,"arithmetic");
                             break;
 
                     case 2: PRINT_INFO("\033[1;36mEnter First Number!");
                             scanf("%f",&num1);
+                            printf("\033[1;0m");
                             PRINT_INFO("\033[1;36mEnter Second Number!")
                             scanf("%f",&num2);
+                            printf("\033[1;0m");
                             param = 2;
                             strcpy(op,"arithmetic");
                             break;
 
                     case 3: PRINT_INFO("\033[1;36mEnter First Number!");
                             scanf("%f",&num1);
+                            printf("\033[1;0m");
                             PRINT_INFO("\033[1;36mEnter Second Number!")
                             scanf("%f",&num2);
+                            printf("\033[1;0m");
                             param = 3;
                             strcpy(op,"arithmetic");
                             break;
 
                     case 4: PRINT_INFO("\033[1;36mEnter First Number!");
                             scanf("%f",&num1);
+                            printf("\033[1;0m");
                             PRINT_INFO("\033[1;36mEnter Second Number!")
                             scanf("%f",&num2);
+                            printf("\033[1;0m");
                             param = 4;
                             strcpy(op,"arithmetic");
                             break;
                     
                     case 5: PRINT_INFO("\033[1;36mEnter The Number");
                             scanf("%f",&num1);
+                            printf("\033[1;0m");
                             strcpy(op,"prime");
                             break;
 
                     
                     case 6: PRINT_INFO("\033[1;36mEnter The Number");
                             scanf("%f",&num1);
+                            printf("\033[1;0m");
                             strcpy(op,"oddeven");
                             break;
                     case 7: PRINT_INFO("\033[1;36mDisconnecting");
@@ -383,6 +414,7 @@ int main()
                             PRINT_INFO("\033[1;31mEnter a valid Choice");
                             break;
                 }
+                flushInput();
                 pthread_mutex_lock(&(data->mutex));
                 data->request.a = num1;
                 data->request.b = num2;
