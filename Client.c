@@ -147,7 +147,6 @@ void handle_sigint(int sig)
 
 int main()
 {
-    int clientid;
     int access = 0;
 
     if ((connect_shmid = shmget(SHM_KEY, sizeof(struct connectInfo), 0)) == -1)
@@ -194,8 +193,8 @@ int main()
                 if (connectinfo->id_arr[i] == false)
                 {
                     connectinfo->id_arr[i] = true;
-                    clientid = i * PRIME + PRIME;
-                    PRINT_INFO("\033[1;32mYou have been assigned a server, you have been assigned a client id:%d. \nPlease remember this id\033[1;0m", clientid);
+                    client_ID = i * PRIME + PRIME;
+                    PRINT_INFO("\033[1;32mYou have been assigned a server, you have been assigned a client id:%d. \nPlease remember this id\033[1;0m", client_ID);
                     idAssigned = true;
                     break;
                 }
@@ -220,9 +219,9 @@ int main()
             }
             if(connectinfo->disconnet[(enteredId / PRIME) - 1] == false)
                 PRINT_INFO("\033[1;31mID already in use, Client is still active");
-            clientid = enteredId;
+            client_ID = enteredId;
             pthread_mutex_lock(&connectinfo->id_mutex);
-            connectinfo->id_arr[clientid/PRIME - 1] = true;
+            connectinfo->id_arr[client_ID/PRIME - 1] = true;
             pthread_mutex_unlock(&connectinfo->id_mutex);
             idAssigned = true;
             break;
@@ -236,7 +235,6 @@ int main()
             break;
         }
     }
-    client_ID = clientid;
 
     char tmp[NAME_SIZE];
     // requestcode => 0-no request, 1-new user request, 2-existing user request
@@ -251,7 +249,7 @@ int main()
             printf("\033[1;0m");
             pthread_mutex_lock(&connectinfo->connect_server_mutex);
             strcpy(connectinfo->username, tmp);
-            connectinfo->id = clientid;
+            connectinfo->id = client_ID;
             connectinfo->requestcode = 1;
             PRINT_INFO("Making register request to server");    
             pthread_mutex_unlock(&connectinfo->connect_server_mutex);
@@ -278,7 +276,7 @@ int main()
         else if (access == 1)
         {
             int comm_shmid = 0;
-            int client_id_temp = (clientid-PRIME)/PRIME ;
+            int client_id_temp = (client_ID-PRIME)/PRIME ;
             if ((comm_shmid = shmget(client_id_temp + 1, sizeof(shared_data_t), 0)) == -1)
             {
                 PRINT_ERROR("\033[1;31mServer is not available, Server has to be started first\033[1;0m");

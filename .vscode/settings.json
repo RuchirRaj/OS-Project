@@ -37,5 +37,6 @@
   "files.associations": {
     "stdio.h": "c",
     "ipc.h": "c"
-  }
+  },
+  "C_Cpp_Runner.showCompilationTime": false
 }
