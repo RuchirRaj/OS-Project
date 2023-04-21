@@ -142,6 +142,17 @@ void handle_sigint(int sig)
         exit(0);
     }
     pthread_mutex_unlock(&(data->mutex));
+    switch (choice)
+    {
+        case 1:
+            PRINT_INFO("\033[1;32mDisconnected successfully");
+            break;
+        case 2:
+            PRINT_INFO("\033[1;32mUnRegistered successfully");
+            break;
+    }
+    
+    PRINT_INFO("\033[1;31mExiting Client!\033[1;0m");
     exit(-1);
 }
 
