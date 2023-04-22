@@ -297,7 +297,7 @@ int main()
     while (1)
     {
         // requestcode => 0-no request, 1-new user request, 2-existing user request
-        // responsecode => 0-no response, 1-successful registratoin, 2-non unique id
+        // requestcode => 0-no response, 1-successful registration, 2-non unique id, 3-Server Full
         pthread_mutex_lock(&connectinfo->mutex);
         if (connectinfo->requestcode == 1)
         {
