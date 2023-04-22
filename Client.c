@@ -34,7 +34,7 @@
         setenv("TZ", "Asia/Kolkata", 1);                                              \
         tzset();                                                                      \
         time_t current_time = time(NULL);                                             \
-        printf("%s ERROR %d:%d %ld %s %s %d : " MSG "\n",                             \
+        printf("%s \033[1;31mERROR\033[1;0m %d:%d %ld %s %s %d : " MSG "\n",                             \
                __TIME__, getpid(), getppid(), pthread_self(), __FILE__, __FUNCTION__, \
                __LINE__, ##__VA_ARGS__);                                              \
     }
@@ -115,7 +115,7 @@ void handle_sigint(int sig)
     {
         flushInput();
         printf("\033[1;0m");
-        PRINT_INFO("\033[1;31mEnter a valid Choice\033[1;35m");
+        PRINT_ERROR("\033[1;31mEnter a valid Choice\033[1;35m");
     }
     flushInput();
     printf("\033[1;0m");
@@ -129,7 +129,7 @@ void handle_sigint(int sig)
                 strcpy(op,"unregister");
                 break;
         default:
-                PRINT_INFO("\033[1;31mEnter a valid Choice");
+                PRINT_ERROR("\033[1;31mEnter a valid Choice");
                 break;
     }
     pthread_mutex_lock(&(data->mutex));
@@ -212,7 +212,7 @@ int main()
                 {
                     flushInput();
                     printf("\033[1;0m");
-                    PRINT_INFO("\033[1;31mEnter a valid Choice\033[1;35m");
+                    PRINT_ERROR("\033[1;31mEnter a valid Choice\033[1;35m");
                 }
                 flushInput();
                 printf("\033[1;0m");
@@ -228,7 +228,7 @@ int main()
                         while(scanf("%d",&enteredId) != 1)
                         {
                             flushInput();
-                            PRINT_INFO("\033[1;31mEnter a valid ID\033[1;0m");
+                            PRINT_ERROR("\033[1;31mEnter a valid ID\033[1;0m");
                         }
                         flushInput();
                         printf("\033[1;0m");
@@ -236,7 +236,7 @@ int main()
                         break;
                     default:
                         idAssigned = false;
-                        PRINT_INFO("\033[1;31mEnter a valid Choice\033[1;0m");
+                        PRINT_ERROR("\033[1;31mEnter a valid Choice\033[1;0m");
                         break;
                 }
                 
@@ -246,7 +246,10 @@ int main()
             }
             if(askID){
                 PRINT_INFO("\033[1;33mPlease Enter a username");
-                scanf("%s", tmp);
+                while(scanf("%s", tmp) != 1){
+                    PRINT_ERROR("\033[1;31mEnter a valid Username\033[1;0m");
+                    flushInput();
+                }
                 printf("\033[1;0m");
             }
             
@@ -278,7 +281,7 @@ int main()
             }
             else if (connectinfo->responsecode == 2)
             {
-                PRINT_INFO("\033[1;31mInvalid Username/ID\033[1;33m");
+                PRINT_ERROR("\033[1;31mInvalid Username/ID\033[1;33m");
                 connectinfo->requestcode = 0;
                 connectinfo->responsecode = 0;
                 askID = true;
@@ -399,7 +402,7 @@ int main()
                             strcpy(op,"unregister");
                             break;
                     default:
-                            PRINT_INFO("\033[1;31mEnter a valid Choice");
+                            PRINT_ERROR("\033[1;31mEnter a valid Choice");
                             break;
                 }
                 flushInput();
