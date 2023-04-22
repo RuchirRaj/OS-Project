@@ -281,6 +281,19 @@ int main()
     {
         connectinfo->disconnet[i] = true;
     }
+    connectinfo->requestcode = 0;
+    connectinfo->responsecode = 0;
+    for (int i = 0; i < NAME_SIZE; i++)
+        strcpy(connectinfo->username + i, " ");
+    connectinfo->id = 0;
+    for (int i = 0; i < NAME_SIZE; i++)
+        connectinfo->id_arr[i] = false;
+    for (int i = 0; i < NAME_SIZE; i++)
+        connectinfo->waitingid[i] = false;
+    for (int i = 0; i < NAME_SIZE; i++)
+        connectinfo->disconnet[i] = false;
+    for (int i = 0; i < NAME_SIZE; i++)
+        connectinfo->canAccess[i] = false;
 
     PRINT_INFO("\033[1;32mConnect Channel Successfully Created\033[0m");
     PRINT_INFO("\033[0m");
@@ -336,7 +349,7 @@ int main()
                 connectinfo->responsecode = 1;
                 number_of_connected_clients++;
             }
-                }
+        }
         pthread_mutex_unlock(&connectinfo->connect_server_mutex);
         while (connectinfo->waitingid[waitcheck % MAX_CLIENTS] == true)
         {
