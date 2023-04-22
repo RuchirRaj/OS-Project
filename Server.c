@@ -343,8 +343,8 @@ int main()
                 }
                 connectinfo->id = GetClientID(clientIndex);
                 disconnet[clientIndex] = false;
-                clientinfo[(connectinfo->id - PRIME) / PRIME].clientid = connectinfo->id;
-                strcpy(clientinfo[(connectinfo->id - PRIME) / PRIME].username, connectinfo->username);
+                clientinfo[clientIndex].clientid = connectinfo->id;
+                strcpy(clientinfo[clientIndex].username, connectinfo->username);
                 
                 if ((childShId[clientIndex] = shmget(GetClientID(clientIndex), sizeof(shared_data_t), 0644 | IPC_CREAT)) == -1)
                 {

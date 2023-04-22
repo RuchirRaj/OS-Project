@@ -18,7 +18,6 @@
 #define SHM_SIZE 1024
 #define NAME_SIZE 256
 #define SHM_KEY 0x1234
-#define PRIME 1543
 #define PRINT_INFO(MSG, ...)                                                          \
     {                                                                                 \
         setenv("TZ", "Asia/Kolkata", 1);                                              \
