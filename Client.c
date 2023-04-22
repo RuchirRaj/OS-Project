@@ -46,10 +46,7 @@ struct connectInfo
     int responsecode;
     char username[NAME_SIZE];
     int id;
-    bool id_arr[MAX_CLIENTS];
-    bool disconnet[MAX_CLIENTS];
-    pthread_mutex_t id_mutex;
-    pthread_mutex_t connect_server_mutex;
+    pthread_mutex_t mutex;
 };
 
 typedef struct 
@@ -108,9 +105,6 @@ void handle_sigint(int sig)
     printf("\033[1;0m");
     PRINT_INFO("\033[1;31mExiting.....\033[1;0m");
     if(!connected){
-        if(idAssigned){
-            connectinfo->id_arr[client_ID/PRIME - 1] = false;
-        }
         exit(-1);
     }
     int choice;
@@ -164,7 +158,7 @@ void handle_sigint(int sig)
             PRINT_INFO("\033[1;32mUnRegistered successfully");
             break;
     }
-    
+    printf("\033[1;0m");
     PRINT_INFO("\033[1;31mExiting Client!\033[1;0m");
     exit(-1);
 }
@@ -195,122 +189,113 @@ int main()
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(&(connectinfo->id_mutex), &attr);
-
-    while(1)
-    {
-        int c = 0;
-        PRINT_INFO("Welcome, Kindly select one of the option.");
-        PRINT_INFO("\033[1;36m1.\033[1;0m New user");
-        PRINT_INFO("\033[1;36m2.\033[1;0m Existing Useer.");
-        PRINT_INFO("\033[1;35mEnter an Option: ");
-        while(scanf("%d", &c) != 1)
-        {
-            flushInput();
-            printf("\033[1;0m");
-            PRINT_INFO("\033[1;31mEnter a valid Choice\033[1;35m");
-        }
-        flushInput();
-        printf("\033[1;0m");
-        idAssigned = false;
-        switch (c)
-        {
-        case 1:
-            pthread_mutex_lock(&connectinfo->id_mutex);
-            int i = 0;
-            for (i = 0; i < MAX_CLIENTS; i++)
-            {
-                if (connectinfo->id_arr[i] == false)
-                {
-                    connectinfo->id_arr[i] = true;
-                    client_ID = i * PRIME + PRIME;
-                    PRINT_INFO("\033[1;32mYou have been assigned a server, you have been assigned a client id:%d. \nPlease remember this id\033[1;0m", client_ID);
-                    idAssigned = true;
-                    break;
-                }
-            }
-            if (i == MAX_CLIENTS)
-            {
-                PRINT_INFO("\033[1;31mServer is full, Check again later\033[1;0m");
-            }
-            pthread_mutex_unlock(&connectinfo->id_mutex);
-            if(!idAssigned)
-                sleep(2);
-            break;
-        case 2:
-            int enteredId = 0;
-            PRINT_INFO("\033[1;33mEnter your ID:");
-            scanf("%d",&enteredId);
-            
-            if(enteredId % PRIME != 0 || (enteredId / PRIME) -1 > MAX_CLIENTS || (enteredId / PRIME) - 1 < 0 
-            || connectinfo->id_arr[enteredId/PRIME - 1] == false){
-                PRINT_INFO("\033[1;31mEnter a valid ID");
-                break;
-            }
-            if(connectinfo->disconnet[(enteredId / PRIME) - 1] == false)
-            {
-                PRINT_INFO("\033[1;31mID already in use, Client is still active");
-                break;
-            }
-            client_ID = enteredId;
-            pthread_mutex_lock(&connectinfo->id_mutex);
-            connectinfo->id_arr[client_ID/PRIME - 1] = true;
-            pthread_mutex_unlock(&connectinfo->id_mutex);
-            idAssigned = true;
-            break;
-        default:
-            PRINT_INFO("\033[1;31mEnter a valid Choice");
-            break;
-        }
-        
-        printf("\033[1;0m");
-        if(idAssigned){
-            break;
-        }
-    }
+    pthread_mutex_init(&(connectinfo->mutex), &attr);
 
     char tmp[NAME_SIZE];
-    // requestcode => 0-no request, 1-new user request, 2-existing user request
-    // requestcode => 0-no response, 1-successful registratoin, 2-non unique id
+    bool askID = true;
+    // requestcode => 0-no request, 1-new user request
+    // requestcode => 0-no response, 1-successful registration, 2-non unique id, 3-Server Full
     while (1)
     {
-        int xyz = 0;
+        int exited = 0;
         if (access == 0)
         {
-            PRINT_INFO("\033[1;33mPlease Enter a username");
-            scanf("%s", tmp);
-            printf("\033[1;0m");
-            pthread_mutex_lock(&connectinfo->connect_server_mutex);
+            if(askID)
+            while(1)
+            {
+                int choice = 0;
+                PRINT_INFO("Welcome, Kindly select one of the option.");
+                PRINT_INFO("\033[1;36m1.\033[1;0m New user");
+                PRINT_INFO("\033[1;36m2.\033[1;0m Existing Useer.");
+                PRINT_INFO("\033[1;35mEnter an Option: ");
+                while(scanf("%d", &choice) != 1)
+                {
+                    flushInput();
+                    printf("\033[1;0m");
+                    PRINT_INFO("\033[1;31mEnter a valid Choice\033[1;35m");
+                }
+                flushInput();
+                printf("\033[1;0m");
+                idAssigned = true;
+                switch (choice)
+                {
+                    case 1:
+                        client_ID = 0;
+                        break;
+                    case 2:
+                        int enteredId = 0;
+                        PRINT_INFO("\033[1;33mEnter your ID:");
+                        while(scanf("%d",&enteredId) != 1)
+                        {
+                            flushInput();
+                            PRINT_INFO("\033[1;31mEnter a valid ID\033[1;0m");
+                        }
+                        flushInput();
+                        client_ID = enteredId;
+                        break;
+                    default:
+                        idAssigned = false;
+                        PRINT_INFO("\033[1;31mEnter a valid Choice\033[1;0m");
+                        break;
+                }
+                
+                printf("\033[1;0m");
+                if(idAssigned)
+                    break;
+            }
+            if(askID){
+                PRINT_INFO("\033[1;33mPlease Enter a username");
+                scanf("%s", tmp);
+                printf("\033[1;0m");
+            }
+            
+            pthread_mutex_lock(&connectinfo->mutex);
+            if(connectinfo->requestcode != 0)
+            {
+                pthread_mutex_unlock(&connectinfo->mutex);
+                sleep(0.2);
+                askID = false;
+                continue;
+            }
             strcpy(connectinfo->username, tmp);
             connectinfo->id = client_ID;
             connectinfo->requestcode = 1;
             PRINT_INFO("Making register request to server");    
-            pthread_mutex_unlock(&connectinfo->connect_server_mutex);
+            pthread_mutex_unlock(&connectinfo->mutex);
             while (connectinfo->responsecode == 0)
             {
             }
 
-            pthread_mutex_lock(&connectinfo->connect_server_mutex);
+            pthread_mutex_lock(&connectinfo->mutex);
             if (connectinfo->responsecode == 1)
             {
-                PRINT_INFO("\033[1;32mServer has been sucessfully assigned\033[1;0m");
-                
+                client_ID = connectinfo->id;
+                PRINT_INFO("\033[1;0mServer has been sucessfully assigned. ID :{\033[1;32m%d\033[1;0m}\033[1;0m", client_ID);
+                connectinfo->requestcode = 0;
                 connectinfo->responsecode = 0;
                 access = 1;
             }
-            if (connectinfo->responsecode == 2)
+            else if (connectinfo->responsecode == 2)
             {
-                PRINT_INFO("\033[1;31mUsername already exists in server\033[1;33m");
+                PRINT_INFO("\033[1;31mInvalid Username/ID\033[1;33m");
+                connectinfo->requestcode = 0;
                 connectinfo->responsecode = 0;
+                askID = true;
             }
-            pthread_mutex_unlock(&connectinfo->connect_server_mutex);
+            else if (connectinfo->responsecode == 3)
+            {
+                PRINT_INFO("\033[1;31mServer is full, Try again later\033[1;33m");
+                connectinfo->requestcode = 0;
+                connectinfo->responsecode = 0;
+                askID = true;
+            }
+            pthread_mutex_unlock(&connectinfo->mutex);
             printf("\033[1;0m");
         }
         else if (access == 1)
         {
             int comm_shmid = 0;
-            int client_id_temp = (client_ID-PRIME)/PRIME ;
-            if ((comm_shmid = shmget(client_id_temp + 1, sizeof(shared_data_t), 0)) == -1)
+            if ((comm_shmid = shmget(client_ID, sizeof(shared_data_t), 0)) == -1)
             {
                 PRINT_ERROR("\033[1;31mServer is not available, Server has to be started first\033[1;0m");
                 return 1;
@@ -466,21 +451,21 @@ int main()
                     case 7:
                             PRINT_INFO("\033[1;32mDisconnected successfully");
                             access = 0;
-                            xyz = 1;
+                            exited = 1;
                             break;
                     case 8:
                             PRINT_INFO("\033[1;32mUnRegistered successfully");
                             access = 0;
-                            xyz = 1;
+                            exited = 1;
                             break;
                     }
                 printf("\033[1;0m");
                 pthread_mutex_unlock(&(data->mutex));
-                if(xyz == 1)
+                if(exited == 1)
                     break;
             }
         }
-        if(xyz == 1)
+        if(exited == 1)
             break;
     }
     PRINT_INFO("\033[1;31mExiting Client!\033[1;0m");

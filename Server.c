@@ -44,6 +44,8 @@ int childShId[MAX_CLIENTS];
     }
 
 int connect_shmid;
+bool id_arr[MAX_CLIENTS];
+bool disconnet[MAX_CLIENTS];
 
 struct connectInfo
 {
@@ -51,10 +53,7 @@ struct connectInfo
     int responsecode;
     char username[NAME_SIZE];
     int id;
-    bool id_arr[MAX_CLIENTS];
-    bool disconnet[MAX_CLIENTS];
-    pthread_mutex_t id_mutex;
-    pthread_mutex_t connect_server_mutex;
+    pthread_mutex_t mutex;
 };
 
 struct clientInfo
@@ -177,31 +176,32 @@ void *threadFunction(void *arg)
         }
         else if(strcmp(data->request.op,"unregister")==0)
         {
-            pthread_mutex_lock(&connectinfo->id_mutex);
-            connectinfo->id_arr[id] = false;
-            connectinfo->disconnet[id] = true;
+            pthread_mutex_lock(&connectinfo->mutex);
+            id_arr[id] = false;
+            disconnet[id] = true;
             strcpy(clientinfo[id].username, "");
             data->response.response_code = 0;
             data->response.server_response_code++;
-            pthread_mutex_unlock(&connectinfo->id_mutex);
+            pthread_mutex_unlock(&connectinfo->mutex);
 
             pthread_mutex_unlock(&(data->mutex));
             shmctl(childShId[id], IPC_RMID, NULL);
             PRINT_INFO("\033[1;31mUnregistered successfully for client id: %d", id);
-            pthread_cancel(pthread_self());
             number_of_connected_clients--;
+            pthread_cancel(pthread_self());
         }
         else if(strcmp(data->request.op,"disconnect")==0)
         {
-            pthread_mutex_lock(&connectinfo->id_mutex);
-            connectinfo->id_arr[id] = true;
-            connectinfo->disconnet[id] = true;   
+            pthread_mutex_lock(&connectinfo->mutex);
+            id_arr[id] = true;
+            disconnet[id] = true;   
             strcpy(clientinfo[id].username, "");
             data->response.response_code = 0;
             data->response.server_response_code++;
-            pthread_mutex_unlock(&connectinfo->id_mutex);
+            pthread_mutex_unlock(&connectinfo->mutex);
             pthread_mutex_unlock(&(data->mutex));
             PRINT_INFO("\033[1;31mDisconnected successfully for client id: %d\033[0m ", id);
+            number_of_connected_clients--;
             pthread_cancel(pthread_self());
         }
         else
@@ -251,6 +251,18 @@ void handle_sigint(int sig)
     exit(-1);
 }
 
+int GetClientID(int index){
+    return index * PRIME + PRIME;
+}
+
+int GetClientIndex(int id){
+    return id / PRIME - 1;
+}
+
+bool IsValidID(int id){
+    return id % PRIME == 0 && GetClientIndex(id) >= 0;
+}
+
 int main()
 {
     
@@ -271,7 +283,7 @@ int main()
     }
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
-        connectinfo->disconnet[i] = true;
+        disconnet[i] = true;
     }
     
     PRINT_INFO("\033[1;32mConnect Channel Successfully Created\033[0m");
@@ -280,53 +292,71 @@ int main()
     pthread_mutexattr_t connect_server_mutex_attr;
     pthread_mutexattr_init(&connect_server_mutex_attr);
     pthread_mutexattr_setpshared(&connect_server_mutex_attr, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(&(connectinfo->connect_server_mutex), &connect_server_mutex_attr);
+    pthread_mutex_init(&(connectinfo->mutex), &connect_server_mutex_attr);
 
     while (1)
     {
         // requestcode => 0-no request, 1-new user request, 2-existing user request
         // responsecode => 0-no response, 1-successful registratoin, 2-non unique id
-        pthread_mutex_lock(&connectinfo->connect_server_mutex);
+        pthread_mutex_lock(&connectinfo->mutex);
         if (connectinfo->requestcode == 1)
         {
             int flag = 0;
             connectinfo->requestcode = 0;
             if(connectinfo->id != 0){
-                int clientId = (connectinfo->id - PRIME) / PRIME;
-                if(connectinfo->id_arr[clientId] == false && connectinfo->disconnet[clientId] == false){
+                int clientIndex = GetClientIndex(connectinfo->id);
+                if(!IsValidID(connectinfo->id) || id_arr[clientIndex] == false || disconnet[clientIndex] == false){
                     flag = 1;
                 }
             }
-            for (int i = 0; i < MAX_CLIENTS; i++)
-            {
-                if (strcmp(connectinfo->username, clientinfo[i].username) == 0)
+            if(flag == 0)
+                for (int i = 0; i < MAX_CLIENTS; i++)
                 {
-                    flag = 1;
-                    break;
+                    if (strcmp(connectinfo->username, clientinfo[i].username) == 0)
+                    {
+                        flag = 1;
+                        break;
+                    }
                 }
-            }
             if(flag == 1)
             {
                 connectinfo->responsecode = 2;
             }else{
-                int clientId = (connectinfo->id - PRIME) / PRIME;
-                connectinfo->disconnet[clientId] = false;
+                int clientIndex = GetClientIndex(connectinfo->id);
+                if(connectinfo->id == 0){
+                    int i = 0;
+                    for (i = 0; i < MAX_CLIENTS; i++)
+                    {
+                        if (id_arr[i] == false)
+                        {
+                            id_arr[i] = true;
+                            clientIndex = i;
+                            break;
+                        }
+                    }
+                    if (i == MAX_CLIENTS)
+                    {
+                        connectinfo->responsecode = 3;
+                        pthread_mutex_unlock(&connectinfo->mutex);
+                        continue;
+                    }
+                }
+                connectinfo->id = GetClientID(clientIndex);
+                disconnet[clientIndex] = false;
                 clientinfo[(connectinfo->id - PRIME) / PRIME].clientid = connectinfo->id;
                 strcpy(clientinfo[(connectinfo->id - PRIME) / PRIME].username, connectinfo->username);
-                int client_id = (connectinfo->id - PRIME) / PRIME;
-                if ((childShId[client_id] = shmget(client_id + 1, sizeof(shared_data_t), 0644 | IPC_CREAT)) == -1)
+                
+                if ((childShId[clientIndex] = shmget(GetClientID(clientIndex), sizeof(shared_data_t), 0644 | IPC_CREAT)) == -1)
                 {
                     PRINT_ERROR("Shared memory");
-                    exit(0);
                 }
-                process[client_id] = pthread_create(&process[client_id], NULL, threadFunction, (void *)&client_id);
-                
-                
+                process[clientIndex] = pthread_create(&process[clientIndex], NULL, threadFunction, (void *)&clientIndex);
                 connectinfo->responsecode = 1;
+                
+                number_of_connected_clients++;
             }
-            number_of_connected_clients++;
         }
-        pthread_mutex_unlock(&connectinfo->connect_server_mutex);
+        pthread_mutex_unlock(&connectinfo->mutex);
         while (connectinfo->requestcode == 0)
         {
         }
