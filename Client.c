@@ -231,6 +231,7 @@ int main()
                             PRINT_INFO("\033[1;31mEnter a valid ID\033[1;0m");
                         }
                         flushInput();
+                        printf("\033[1;0m");
                         client_ID = enteredId;
                         break;
                     default:
