@@ -33,7 +33,7 @@
         setenv("TZ", "Asia/Kolkata", 1);                                              \
         tzset();                                                                      \
         time_t current_time = time(NULL);                                             \
-        printf("%s \033[1;31mERROR\033[1;0m %d:%d %ld %s %s %d : " MSG "\n",                             \
+        printf("%s \033[1;31mERROR\033[1;0m %d:%d %ld %s %s %d : " MSG "\n",          \
                __TIME__, getpid(), getppid(), pthread_self(), __FILE__, __FUNCTION__, \
                __LINE__, ##__VA_ARGS__);                                              \
     }
