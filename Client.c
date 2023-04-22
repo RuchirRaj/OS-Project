@@ -269,7 +269,7 @@ int main()
             while (connectinfo->canAccess[client_ID / PRIME - 1] == false)
             {
             }
-            connectinfo->waitingid[client_ID / PRIME - 1] = true;
+            connectinfo->waitingid[client_ID / PRIME - 1] = false;
             connectinfo->canAccess[client_ID / PRIME - 1] = false;
             pthread_mutex_lock(&connectinfo->connect_server_mutex);
             strcpy(connectinfo->username, tmp);

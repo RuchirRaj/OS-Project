@@ -334,15 +334,16 @@ int main()
                 process[client_id] = pthread_create(&process[client_id], NULL, threadFunction, (void *)&client_id);
 
                 connectinfo->responsecode = 1;
+                number_of_connected_clients++;
             }
-            number_of_connected_clients++;
-        }
+                }
         pthread_mutex_unlock(&connectinfo->connect_server_mutex);
         while (connectinfo->waitingid[waitcheck % MAX_CLIENTS] == true)
         {
             waitcheck = (waitcheck + 1) % MAX_CLIENTS;
         }
         connectinfo->canAccess[waitcheck] = true;
+        waitcheck = (waitcheck + 1) % MAX_CLIENTS;
         while (connectinfo->requestcode == 0)
         {
         }
