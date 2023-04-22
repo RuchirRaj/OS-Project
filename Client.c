@@ -47,7 +47,6 @@ struct connectInfo
     char username[NAME_SIZE];
     int id;
     bool id_arr[MAX_CLIENTS];
-    bool waitingid[MAX_CLIENTS];
     bool disconnet[MAX_CLIENTS];
     pthread_mutex_t id_mutex;
     pthread_mutex_t connect_server_mutex;
@@ -249,7 +248,10 @@ int main()
                 break;
             }
             if(connectinfo->disconnet[(enteredId / PRIME) - 1] == false)
+            {
                 PRINT_INFO("\033[1;31mID already in use, Client is still active");
+                break;
+            }
             client_ID = enteredId;
             pthread_mutex_lock(&connectinfo->id_mutex);
             connectinfo->id_arr[client_ID/PRIME - 1] = true;

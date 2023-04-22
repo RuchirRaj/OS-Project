@@ -52,7 +52,6 @@ struct connectInfo
     char username[NAME_SIZE];
     int id;
     bool id_arr[MAX_CLIENTS];
-    bool waitingid[MAX_CLIENTS];
     bool disconnet[MAX_CLIENTS];
     pthread_mutex_t id_mutex;
     pthread_mutex_t connect_server_mutex;
