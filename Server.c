@@ -22,7 +22,7 @@
 int total_requests_served = 0;
 int number_of_connected_clients = 0;
 pthread_t process[MAX_CLIENTS];
-int childShId[MAX_CLIENTS]; 
+int childShId[MAX_CLIENTS];
 #define PRINT_INFO(MSG, ...)                                                          \
     {                                                                                 \
         setenv("TZ", "Asia/Kolkata", 1);                                              \
@@ -54,6 +54,7 @@ struct connectInfo
     bool id_arr[MAX_CLIENTS];
     bool waitingid[MAX_CLIENTS];
     bool disconnet[MAX_CLIENTS];
+    bool canAccess[MAX_CLIENTS];
     pthread_mutex_t id_mutex;
     pthread_mutex_t connect_server_mutex;
 };
@@ -67,31 +68,31 @@ struct clientInfo
 };
 
 struct clientInfo clientinfo[MAX_CLIENTS];
-typedef struct 
+typedef struct
 {
-  int response_code;
-  int client_response_code;
-  int server_response_code;
-  union 
-  {
-    bool trueOrFalse;
-    char oddOrEven[5];
-    float answer;
-  } data;
+    int response_code;
+    int client_response_code;
+    int server_response_code;
+    union
+    {
+        bool trueOrFalse;
+        char oddOrEven[5];
+        float answer;
+    } data;
 } response_info;
 typedef struct
 {
     float a;
-    float b;    
+    float b;
     char op[NAME_SIZE];
     int param;
 } request_info;
 
-typedef struct 
+typedef struct
 {
-      pthread_mutex_t mutex;
-      request_info request;
-      response_info response;
+    pthread_mutex_t mutex;
+    request_info request;
+    response_info response;
 } shared_data_t;
 
 int hash(unsigned char *str)
@@ -108,30 +109,34 @@ int hash(unsigned char *str)
 float arithmeticFunctions(float num1, float num2, int operation)
 {
     float ans = 0;
-    switch(operation)
+    switch (operation)
     {
-      case 1: ans = num1+num2;
-              break;
+    case 1:
+        ans = num1 + num2;
+        break;
 
-      case 2: ans = num1-num2;
-              break;
+    case 2:
+        ans = num1 - num2;
+        break;
 
-      case 3: ans = num1*num2;
-              break;
+    case 3:
+        ans = num1 * num2;
+        break;
 
-      case 4: ans = num1/num2;
-              break;
-
+    case 4:
+        ans = num1 / num2;
+        break;
     }
     return ans;
 }
 
 void oddOrEven(int num, char *ans)
 {
-    if(num%2==0)
-    strcpy(ans,"Even");
-    else strcpy(ans,"Odd");
-} 
+    if (num % 2 == 0)
+        strcpy(ans, "Even");
+    else
+        strcpy(ans, "Odd");
+}
 
 bool primeCheck(int n)
 {
@@ -144,22 +149,25 @@ bool primeCheck(int n)
     }
     return true;
 }
+int waitcheck = 0;
 void *threadFunction(void *arg)
-{ 
+{
     struct connectInfo *connectinfo;
     connectinfo = shmat(connect_shmid, NULL, 0);
-    
+
     int id = *(int *)arg;
     PRINT_INFO("\nWorker Thread Executing : {%d}\n", id);
     shared_data_t *data;
     data = shmat(childShId[id], NULL, 0);
     PRINT_INFO("\033[1;32mCommunication Channel Created");
     data->response.response_code = -2;
-    while(1)
+    while (1)
     {
-        while(data->response.response_code!=-1){};
+        while (data->response.response_code != -1)
+        {
+        };
         pthread_mutex_lock(&(data->mutex));
-        if(strcmp(data->request.op ,"prime")==0)
+        if (strcmp(data->request.op, "prime") == 0)
         {
             bool ans = primeCheck(data->request.a);
             data->response.data.trueOrFalse = ans;
@@ -167,16 +175,16 @@ void *threadFunction(void *arg)
             data->response.server_response_code++;
             PRINT_INFO("Successfully responded to client.");
         }
-        else if(strcmp(data->request.op,"oddeven")==0)
+        else if (strcmp(data->request.op, "oddeven") == 0)
         {
             char ans[5];
-            oddOrEven(data->request.a,ans);
-            strcpy(data->response.data.oddOrEven,ans);
+            oddOrEven(data->request.a, ans);
+            strcpy(data->response.data.oddOrEven, ans);
             data->response.response_code = 0;
             data->response.server_response_code++;
             PRINT_INFO("Successfully responded to client.");
         }
-        else if(strcmp(data->request.op,"unregister")==0)
+        else if (strcmp(data->request.op, "unregister") == 0)
         {
             pthread_mutex_lock(&connectinfo->id_mutex);
             connectinfo->id_arr[id] = false;
@@ -192,11 +200,11 @@ void *threadFunction(void *arg)
             pthread_cancel(pthread_self());
             number_of_connected_clients--;
         }
-        else if(strcmp(data->request.op,"disconnect")==0)
+        else if (strcmp(data->request.op, "disconnect") == 0)
         {
             pthread_mutex_lock(&connectinfo->id_mutex);
             connectinfo->id_arr[id] = true;
-            connectinfo->disconnet[id] = true;   
+            connectinfo->disconnet[id] = true;
             strcpy(clientinfo[id].username, "");
             data->response.response_code = 0;
             data->response.server_response_code++;
@@ -208,24 +216,23 @@ void *threadFunction(void *arg)
         else
         {
             int operation = data->request.param;
-            float ans = arithmeticFunctions(data->request.a,data->request.b,operation);
+            float ans = arithmeticFunctions(data->request.a, data->request.b, operation);
             data->response.data.answer = ans;
             data->response.response_code = 0;
             data->response.server_response_code++;
             PRINT_INFO("Successfully responded to client.");
-
         };
         total_requests_served++;
         PRINT_INFO("\033[1;34mServer Summary:\033[0m");
         PRINT_INFO("\033[0m");
         PRINT_INFO("LIST OF CONNECTED CLIENTS: ");
-        for(int i = 0; i< MAX_CLIENTS;i++)
+        for (int i = 0; i < MAX_CLIENTS; i++)
         {
-            if((strcmp(clientinfo[i].username,"")!=0)&&(strcmp(clientinfo[i].username,"\0")!=0))
-            PRINT_INFO("%s",clientinfo[i].username);
+            if ((strcmp(clientinfo[i].username, "") != 0) && (strcmp(clientinfo[i].username, "\0") != 0))
+                PRINT_INFO("%s", clientinfo[i].username);
         }
-        PRINT_INFO("Number Of Requests Served of Client %s: %d",clientinfo[id].username,data->response.server_response_code);
-        PRINT_INFO("Total Requests Served: %d",total_requests_served);
+        PRINT_INFO("Number Of Requests Served of Client %s: %d", clientinfo[id].username, data->response.server_response_code);
+        PRINT_INFO("Total Requests Served: %d", total_requests_served);
         pthread_mutex_unlock(&(data->mutex));
     }
 }
@@ -254,7 +261,7 @@ void handle_sigint(int sig)
 
 int main()
 {
-    
+
     PRINT_INFO("\033[1;32mServer Started");
     PRINT_INFO("\033[0m");
     if ((connect_shmid = shmget(SHM_KEY, sizeof(struct connectInfo), 0644 | IPC_CREAT)) == -1)
@@ -274,7 +281,7 @@ int main()
     {
         connectinfo->disconnet[i] = true;
     }
-    
+
     PRINT_INFO("\033[1;32mConnect Channel Successfully Created\033[0m");
     PRINT_INFO("\033[0m");
     signal(SIGINT, handle_sigint);
@@ -292,9 +299,11 @@ int main()
         {
             int flag = 0;
             connectinfo->requestcode = 0;
-            if(connectinfo->id != 0){
+            if (connectinfo->id != 0)
+            {
                 int clientId = (connectinfo->id - PRIME) / PRIME;
-                if(connectinfo->id_arr[clientId] == false && connectinfo->disconnet[clientId] == false){
+                if (connectinfo->id_arr[clientId] == false && connectinfo->disconnet[clientId] == false)
+                {
                     flag = 1;
                 }
             }
@@ -306,10 +315,12 @@ int main()
                     break;
                 }
             }
-            if(flag == 1)
+            if (flag == 1)
             {
                 connectinfo->responsecode = 2;
-            }else{
+            }
+            else
+            {
                 int clientId = (connectinfo->id - PRIME) / PRIME;
                 connectinfo->disconnet[clientId] = false;
                 clientinfo[(connectinfo->id - PRIME) / PRIME].clientid = connectinfo->id;
@@ -321,13 +332,17 @@ int main()
                     exit(0);
                 }
                 process[client_id] = pthread_create(&process[client_id], NULL, threadFunction, (void *)&client_id);
-                
-                
+
                 connectinfo->responsecode = 1;
             }
             number_of_connected_clients++;
         }
         pthread_mutex_unlock(&connectinfo->connect_server_mutex);
+        while (connectinfo->waitingid[waitcheck % MAX_CLIENTS] == true)
+        {
+            waitcheck = (waitcheck + 1) % MAX_CLIENTS;
+        }
+        connectinfo->canAccess[waitcheck] = true;
         while (connectinfo->requestcode == 0)
         {
         }
