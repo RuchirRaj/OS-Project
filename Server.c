@@ -246,7 +246,8 @@ void handle_sigint(int sig)
     // Close worker Threads
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
-        pthread_cancel(threads[i]);
+        if(threads[i] != 0)
+            pthread_cancel(threads[i]);
     }
     exit(-1);
 }

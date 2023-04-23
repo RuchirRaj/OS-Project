@@ -12,7 +12,6 @@
 #include <time.h>
 #include <stdbool.h>
 
-#define MAX_CLIENTS 10
 #define MAX_MESSAGE_LENGTH 100
 #define BUF_SIZE 1024
 #define SHM_SIZE 1024
