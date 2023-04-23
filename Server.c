@@ -19,9 +19,10 @@
 #define NAME_SIZE 256
 #define SHM_KEY 0x1234
 #define PRIME 1543
+#define TIMEOUT 2
 int total_requests_served = 0;
 int number_of_connected_clients = 0;
-pthread_t process[MAX_CLIENTS];
+pthread_t threads[MAX_CLIENTS];
 int childShId[MAX_CLIENTS]; 
 #define PRINT_INFO(MSG, ...)                                                          \
     {                                                                                 \
@@ -148,10 +149,10 @@ void *threadFunction(void *arg)
     connectinfo = shmat(connect_shmid, NULL, 0);
     
     int id = *(int *)arg;
-    PRINT_INFO("\nWorker Thread Executing : {%d}\n", id);
+    PRINT_INFO("\033[1;33mWorker Thread Executing : {%d}\033[1;0m", id);
     shared_data_t *data;
     data = shmat(childShId[id], NULL, 0);
-    PRINT_INFO("\033[1;32mCommunication Channel Created");
+    PRINT_INFO("\033[1;32mCommunication Channel Created\033[1;0m");
     data->response.response_code = -2;
     while(1)
     {
@@ -163,7 +164,7 @@ void *threadFunction(void *arg)
             data->response.data.trueOrFalse = ans;
             data->response.response_code = 0;
             data->response.server_response_code++;
-            PRINT_INFO("Successfully responded to client.");
+            PRINT_INFO("\033[1;32mSuccessfully responded to client.\033[1;32m");
         }
         else if(strcmp(data->request.op,"oddeven")==0)
         {
@@ -172,7 +173,7 @@ void *threadFunction(void *arg)
             strcpy(data->response.data.oddOrEven,ans);
             data->response.response_code = 0;
             data->response.server_response_code++;
-            PRINT_INFO("Successfully responded to client.");
+            PRINT_INFO("\033[1;32mSuccessfully responded to client.\033[1;32m");
         }
         else if(strcmp(data->request.op,"unregister")==0)
         {
@@ -186,7 +187,7 @@ void *threadFunction(void *arg)
 
             pthread_mutex_unlock(&(data->mutex));
             shmctl(childShId[id], IPC_RMID, NULL);
-            PRINT_INFO("\033[1;31mUnregistered successfully for client id: %d", id);
+            PRINT_INFO("\033[1;31mUnregistered successfully for client id: %d\033[1;0m", id);
             number_of_connected_clients--;
             pthread_cancel(pthread_self());
         }
@@ -211,17 +212,16 @@ void *threadFunction(void *arg)
             data->response.data.answer = ans;
             data->response.response_code = 0;
             data->response.server_response_code++;
-            PRINT_INFO("Successfully responded to client.");
+            PRINT_INFO("\033[1;32mSuccessfully responded to client.\033[1;0m");
 
         };
         total_requests_served++;
         PRINT_INFO("\033[1;34mServer Summary:\033[0m");
-        PRINT_INFO("\033[0m");
-        PRINT_INFO("LIST OF CONNECTED CLIENTS: ");
+        PRINT_INFO("LIST OF CONNECTED CLIENTS:");
         for(int i = 0; i< MAX_CLIENTS;i++)
         {
             if((strcmp(clientinfo[i].username,"")!=0)&&(strcmp(clientinfo[i].username,"\0")!=0))
-            PRINT_INFO("%s",clientinfo[i].username);
+            PRINT_INFO("\033[1;36m%s\033[1;0m",clientinfo[i].username);
         }
         PRINT_INFO("Number Of Requests Served of Client %s: %d",clientinfo[id].username,data->response.server_response_code);
         PRINT_INFO("Total Requests Served: %d",total_requests_served);
@@ -231,7 +231,7 @@ void *threadFunction(void *arg)
 
 void handle_sigint(int sig)
 {
-    PRINT_INFO("\nClosing shared memory segment.....\n");
+    PRINT_INFO("\033[1;31mClosing shared memory segment.....\033[1;0m");
 
     // Close connection Shared memory
     shmctl(connect_shmid, IPC_RMID, NULL);
@@ -242,11 +242,11 @@ void handle_sigint(int sig)
         shmctl(childShId[i], IPC_RMID, NULL);
     }
 
-    PRINT_INFO("Closing worker Threads....\n");
+    PRINT_INFO("\033[1;31mClosing worker Threads....\033[1;0m");
     // Close worker Threads
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
-        kill(*(process + i), SIGKILL);
+        pthread_cancel(threads[i]);
     }
     exit(-1);
 }
@@ -265,9 +265,8 @@ bool IsValidID(int id){
 
 int main()
 {
-    
-    PRINT_INFO("\033[1;32mServer Started");
-    PRINT_INFO("\033[0m");
+    time_t start, end;
+    PRINT_INFO("\033[1;32mServer Started\033[1;0m");
     if ((connect_shmid = shmget(SHM_KEY, sizeof(struct connectInfo), 0644 | IPC_CREAT)) == -1)
     {
         PRINT_ERROR("Unable to Create Shared Memory");
@@ -287,13 +286,12 @@ int main()
     }
     
     PRINT_INFO("\033[1;32mConnect Channel Successfully Created\033[0m");
-    PRINT_INFO("\033[0m");
     signal(SIGINT, handle_sigint);
     pthread_mutexattr_t connect_server_mutex_attr;
     pthread_mutexattr_init(&connect_server_mutex_attr);
     pthread_mutexattr_setpshared(&connect_server_mutex_attr, PTHREAD_PROCESS_SHARED);
     pthread_mutex_init(&(connectinfo->mutex), &connect_server_mutex_attr);
-
+    connectinfo->responsecode = 0;
     while (1)
     {
         // requestcode => 0-no request, 1-new user request, 2-existing user request
@@ -321,6 +319,7 @@ int main()
             if(flag == 1)
             {
                 connectinfo->responsecode = 2;
+                start = time(NULL);
             }else{
                 int clientIndex = GetClientIndex(connectinfo->id);
                 if(connectinfo->id == 0){
@@ -338,6 +337,7 @@ int main()
                     {
                         connectinfo->responsecode = 3;
                         pthread_mutex_unlock(&connectinfo->mutex);
+                        start = time(NULL);
                         continue;
                     }
                 }
@@ -350,15 +350,37 @@ int main()
                 {
                     PRINT_ERROR("Shared memory");
                 }
-                process[clientIndex] = pthread_create(&process[clientIndex], NULL, threadFunction, (void *)&clientIndex);
+                if(pthread_create(&threads[clientIndex], NULL, threadFunction, (void *)&clientIndex))
+                {
+                    PRINT_ERROR("\033[1;31mThread Creation\033[1;0m");
+                }
                 connectinfo->responsecode = 1;
                 
                 number_of_connected_clients++;
+                start = time(NULL);
             }
         }
         pthread_mutex_unlock(&connectinfo->mutex);
         while (connectinfo->requestcode == 0)
         {
+            end = time(NULL);
+            if(difftime(end, start) > TIMEOUT && connectinfo->responsecode != 0)
+            {
+                pthread_mutex_lock(&connectinfo->mutex);
+                PRINT_ERROR("\033[1;31mTimeout\033[1;0m");
+                if(connectinfo->responsecode == 1 && 
+                IsValidID(connectinfo->id))
+                {
+                    int index = GetClientIndex(connectinfo->id);
+                    shmctl(childShId[index], IPC_RMID, NULL);
+                    pthread_cancel(threads[index]);
+                    id_arr[index] = false;
+                    disconnet[index] = true;
+                    number_of_connected_clients--;
+                }
+                connectinfo->responsecode = 0;
+                pthread_mutex_unlock(&connectinfo->mutex);
+            }
         }
     }
 }

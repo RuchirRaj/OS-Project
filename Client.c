@@ -93,6 +93,13 @@ int hash(unsigned char *str)
     return hash;
 }
 
+void sleep_ms(int milliseconds) {
+    struct timespec ts;
+    ts.tv_sec = milliseconds / 1000;
+    ts.tv_nsec = (milliseconds % 1000) * 1000000;
+    nanosleep(&ts, NULL);
+}
+
 void flushInput(){
   int c;
   while((c = getchar()) != EOF && c != '\n')
@@ -253,10 +260,11 @@ int main()
             }
             
             pthread_mutex_lock(&connectinfo->mutex);
-            if(connectinfo->requestcode != 0)
+            if(connectinfo->requestcode != 0 || connectinfo->responsecode != 0)
             {
                 pthread_mutex_unlock(&connectinfo->mutex);
-                sleep(0.2);
+                PRINT_ERROR("\033[1;31mWaiting\033[1;0m");
+                sleep_ms(100);
                 askID = false;
                 continue;
             }
