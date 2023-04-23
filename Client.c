@@ -12,12 +12,12 @@
 #include <time.h>
 #include <stdbool.h>
 
-#define MAX_CLIENTS 10
 #define MAX_MESSAGE_LENGTH 100
 #define BUF_SIZE 1024
 #define SHM_SIZE 1024
 #define NAME_SIZE 256
 #define SHM_KEY 0x1234
+#define TIMEOUT 1
 #define PRINT_INFO(MSG, ...)                                                          \
     {                                                                                 \
         setenv("TZ", "Asia/Kolkata", 1);                                              \
@@ -39,6 +39,7 @@
     }
 
 int connect_shmid;
+pthread_t thread;
 struct connectInfo
 {
     int requestcode;
@@ -93,10 +94,31 @@ int hash(unsigned char *str)
     return hash;
 }
 
+void sleep_ms(int milliseconds) {
+    struct timespec ts;
+    ts.tv_sec = milliseconds / 1000;
+    ts.tv_nsec = (milliseconds % 1000) * 1000000;
+    nanosleep(&ts, NULL);
+}
+
 void flushInput(){
   int c;
   while((c = getchar()) != EOF && c != '\n')
         /* discard */ ;  
+}
+
+void *checkServerConnection(void *arg)
+{ 
+    int shmid;
+    while(1)
+    {
+        if ((shmid = shmget(client_ID, sizeof(shared_data_t), 0)) == -1)
+        {
+            PRINT_ERROR("\033[1;31mServer is not available, Server has to be started first\033[1;0m");
+            exit(1);
+        }
+        sleep_ms(TIMEOUT * 1000);
+    }
 }
 
 void handle_sigint(int sig)
@@ -251,12 +273,20 @@ int main()
                 }
                 printf("\033[1;0m");
             }
-            
-            pthread_mutex_lock(&connectinfo->mutex);
-            if(connectinfo->requestcode != 0)
+            int ret;
+            struct timespec ts;
+
+            // Get the current time
+            clock_gettime(CLOCK_REALTIME, &ts);
+
+            // Add a timeout of 1 seconds
+            ts.tv_sec += 1;
+            pthread_mutex_timedlock(&connectinfo->mutex, &ts);
+            if(connectinfo->requestcode != 0 || connectinfo->responsecode != 0)
             {
                 pthread_mutex_unlock(&connectinfo->mutex);
-                sleep(0.2);
+                PRINT_ERROR("\033[1;31mWaiting\033[1;0m");
+                sleep_ms(100);
                 askID = false;
                 continue;
             }
@@ -269,7 +299,12 @@ int main()
             {
             }
 
-            pthread_mutex_lock(&connectinfo->mutex);
+            // Get the current time
+            clock_gettime(CLOCK_REALTIME, &ts);
+            // Add a timeout of 1 seconds
+            ts.tv_sec += 1;
+
+            pthread_mutex_timedlock(&connectinfo->mutex, &ts);
             if (connectinfo->responsecode == 1)
             {
                 client_ID = connectinfo->id;
@@ -324,6 +359,10 @@ int main()
             float num1 = -1;
             float num2 = -1;
             int param = -1;
+            if(pthread_create(&thread, NULL, checkServerConnection, (void *)&client_ID))
+            {
+                PRINT_ERROR("\033[1;31mThread Creation for server status\033[1;0m");
+            }
             while(1)
             {
                 printf("\n");
@@ -405,6 +444,11 @@ int main()
                             break;
                 }
                 flushInput();
+                if ((comm_shmid = shmget(client_ID, sizeof(shared_data_t), 0)) == -1)
+                {
+                    PRINT_ERROR("\033[1;31mServer is not available, Server has to be started first\033[1;0m");
+                    exit(1);
+                }
                 pthread_mutex_lock(&(data->mutex));
                 data->request.a = num1;
                 data->request.b = num2;
