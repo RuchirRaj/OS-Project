@@ -17,6 +17,7 @@
 #define SHM_SIZE 1024
 #define NAME_SIZE 256
 #define SHM_KEY 0x1234
+#define TIMEOUT 1
 #define PRINT_INFO(MSG, ...)                                                          \
     {                                                                                 \
         setenv("TZ", "Asia/Kolkata", 1);                                              \
@@ -38,6 +39,7 @@
     }
 
 int connect_shmid;
+pthread_t thread;
 struct connectInfo
 {
     int requestcode;
@@ -103,6 +105,24 @@ void flushInput(){
   int c;
   while((c = getchar()) != EOF && c != '\n')
         /* discard */ ;  
+}
+
+void *checkServerConnection(void *arg)
+{ 
+    time_t start, end;
+    int shmid;
+    start = time(NULL);
+    while(1)
+    {
+        end = time(NULL);
+        if (difftime(end, start) > TIMEOUT && (shmid = shmget(client_ID, sizeof(shared_data_t), 0)) == -1)
+        {
+            PRINT_ERROR("\033[1;31mServer is not available, Server has to be started first\033[1;0m");
+            exit(1);
+        }else{
+            start = time(NULL);
+        }
+    }
 }
 
 void handle_sigint(int sig)
@@ -343,6 +363,10 @@ int main()
             float num1 = -1;
             float num2 = -1;
             int param = -1;
+            if(pthread_create(&thread, NULL, checkServerConnection, (void *)&client_ID))
+            {
+                PRINT_ERROR("\033[1;31mThread Creation for server status\033[1;0m");
+            }
             while(1)
             {
                 printf("\n");
@@ -424,6 +448,11 @@ int main()
                             break;
                 }
                 flushInput();
+                if ((comm_shmid = shmget(client_ID, sizeof(shared_data_t), 0)) == -1)
+                {
+                    PRINT_ERROR("\033[1;31mServer is not available, Server has to be started first\033[1;0m");
+                    exit(1);
+                }
                 pthread_mutex_lock(&(data->mutex));
                 data->request.a = num1;
                 data->request.b = num2;
