@@ -109,19 +109,15 @@ void flushInput(){
 
 void *checkServerConnection(void *arg)
 { 
-    time_t start, end;
     int shmid;
-    start = time(NULL);
     while(1)
     {
-        end = time(NULL);
-        if (difftime(end, start) > TIMEOUT && (shmid = shmget(client_ID, sizeof(shared_data_t), 0)) == -1)
+        if ((shmid = shmget(client_ID, sizeof(shared_data_t), 0)) == -1)
         {
             PRINT_ERROR("\033[1;31mServer is not available, Server has to be started first\033[1;0m");
             exit(1);
-        }else{
-            start = time(NULL);
         }
+        sleep_ms(TIMEOUT * 1000);
     }
 }
 
