@@ -264,7 +264,7 @@ int main()
             // Get the current time
             clock_gettime(CLOCK_REALTIME, &ts);
 
-            // Add a timeout of 5 seconds
+            // Add a timeout of 1 seconds
             ts.tv_sec += 1;
             pthread_mutex_timedlock(&connectinfo->mutex, &ts);
             if(connectinfo->requestcode != 0 || connectinfo->responsecode != 0)
