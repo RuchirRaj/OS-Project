@@ -258,8 +258,15 @@ int main()
                 }
                 printf("\033[1;0m");
             }
-            
-            pthread_mutex_lock(&connectinfo->mutex);
+            int ret;
+            struct timespec ts;
+
+            // Get the current time
+            clock_gettime(CLOCK_REALTIME, &ts);
+
+            // Add a timeout of 5 seconds
+            ts.tv_sec += 5;
+            pthread_mutex_timedlock(&connectinfo->mutex, &ts);
             if(connectinfo->requestcode != 0 || connectinfo->responsecode != 0)
             {
                 pthread_mutex_unlock(&connectinfo->mutex);
@@ -277,7 +284,10 @@ int main()
             {
             }
 
-            pthread_mutex_lock(&connectinfo->mutex);
+            // Get the current time
+            clock_gettime(CLOCK_REALTIME, &ts);
+
+            pthread_mutex_timedlock(&connectinfo->mutex, &ts);
             if (connectinfo->responsecode == 1)
             {
                 client_ID = connectinfo->id;
