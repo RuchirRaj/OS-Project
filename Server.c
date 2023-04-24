@@ -375,6 +375,7 @@ int main()
                     int index = GetClientIndex(connectinfo->id);
                     shmctl(childShId[index], IPC_RMID, NULL);
                     pthread_cancel(threads[index]);
+                    strcpy(clientinfo[index].username, connectinfo->username);
                     id_arr[index] = false;
                     disconnet[index] = true;
                     number_of_connected_clients--;
